@@ -1,0 +1,343 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { adminService } from '../services/admin.service.js';
+import { studentService } from '../services/student.service.js';
+
+export default function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [formData, setFormData] = useState({
+    email: location.state?.email || '',
+    password: '',
+    userType: 'student',
+    rememberMe: false
+  });
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Show success message from registration
+  useEffect(() => {
+    if (location.state?.message) {
+      setSuccessMessage(location.state.message);
+      // Clear the message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
+      // Clear the navigation state
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+    setError('');
+  };
+
+  const handleUserTypeChange = (userType) => {
+    setFormData({
+      ...formData,
+      userType
+    });
+    setError('');
+  };
+
+  // Demo mode for testing - bypasses authentication
+  const handleDemoLogin = (userType) => {
+    // Set demo credentials in localStorage
+    localStorage.setItem('token', 'demo-token-' + userType);
+    localStorage.setItem('userRole', userType);
+    localStorage.setItem('userName', userType === 'admin' ? 'Admin Demo' : 'Student Demo');
+    localStorage.setItem('userData', JSON.stringify({
+      name: userType === 'admin' ? 'Admin Demo' : 'Student Demo',
+      email: userType === 'admin' ? 'admin@demo.com' : 'student@demo.com',
+      id: userType === 'admin' ? 'admin-001' : 'student-001'
+    }));
+    
+    // Navigate to appropriate dashboard
+    if (userType === 'admin') {
+      navigate('/admin/dashboard');
+    } else {
+      navigate('/student/dashboard');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    
+    try {
+      const credentials = {
+        email: formData.email,
+        password: formData.password
+      };
+
+      let response;
+      if (formData.userType === 'admin') {
+        // Only allow admin@example.com to access admin panel
+        if (formData.email !== 'admin@example.com') {
+          setError('Unauthorized admin access. Only admin@example.com can access the admin panel.');
+          setLoading(false);
+          return;
+        }
+        
+        response = await adminService.login(credentials);
+        
+        // Verify the response contains admin role
+        if (response.user.role !== 'admin') {
+          setError('Invalid admin credentials.');
+          setLoading(false);
+          return;
+        }
+        
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('userRole', 'admin');
+        localStorage.setItem('userName', response.user.name);
+        localStorage.setItem('userData', JSON.stringify(response.user));
+        navigate('/admin/dashboard');
+      } else {
+        // Student login
+        response = await studentService.login(credentials);
+        
+        // Verify the response contains student role
+        if (response.user.role !== 'student') {
+          setError('Invalid student credentials.');
+          setLoading(false);
+          return;
+        }
+        
+        localStorage.setItem('token', response.token);
+        localStorage.setItem('userRole', 'student');
+        localStorage.setItem('userName', response.user.name);
+        localStorage.setItem('userData', JSON.stringify(response.user));
+        navigate('/student/dashboard');
+      }
+    } catch (err) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center font-display">
+      <div className="flex h-screen w-full overflow-hidden flex-col md:flex-row">
+        {/* Left Side: Campus Image & Branding */}
+        <div className="hidden md:flex md:w-2/5 lg:w-2/5 bg-blue-600 relative overflow-hidden">
+          <div 
+            className="absolute inset-0 bg-cover bg-center" 
+            style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCF3wlPEBDyHRZRSrEUsGO5d4PGe9WT0BrJZrFZizN6NGOcm6Pk1WQq6R283PaDQPNRfqAtqTdWYkHBh5aPe74E0OrNM6WDU7hDb7PT2WbQ2kFvA1NgcmfIfyzUYalEooxcfEeFM-eOXfk-2gEXrnd1jceMR-ewdGo2fBAuilt_8GPSFwznX-UB7RTQWgAf8tQ1f1ULdSufYdYXCyueNlIv7upxq3dqEQh76fPGqX6IaxV4QQO_i8UzSNV0A70Cw1C_C7xErA4QPGM')"}}
+          ></div>
+          <div className="absolute inset-0 bg-blue-600/40 mix-blend-multiply"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 to-transparent"></div>
+          <div className="relative z-10 p-12 flex flex-col justify-between h-full text-white">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center text-blue-600 shadow-lg">
+                <span className="material-symbols-outlined text-3xl font-bold">domain</span>
+              </div>
+              <span className="text-2xl font-black tracking-tight">HostelHub</span>
+            </div>
+            <div className="max-w-md">
+              <h2 className="text-4xl lg:text-5xl font-extrabold leading-tight mb-6">
+                The ultimate stay management experience.
+              </h2>
+              <p className="text-lg text-white/80 leading-relaxed">
+                Streamlining room allocations, facility bookings, and student lifestyle management for modern educational institutions.
+              </p>
+            </div>
+            <div className="flex items-center gap-4 text-sm font-medium">
+              <div className="flex -space-x-2">
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden bg-cover bg-center" 
+                  style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAKndoUqJmoXECNc9_jmZybAmGpgPkC2yEKL10xbbQ3L20shwl9_TzhX6F5YIXGnj2qaaV7PBZs4praVVtd8m7Wdbs3TvHO7G85G5SidGar8-fwFguX80NyWp0gAW4UjbFURSfBHdzaW86h0_SJ-b1AkusDpm5DI9geuJQg-Uf06XYGoO2h_SzO6wZNgjhzJofMKsIwbL-li4mFjCismyRtFVzfKjaMAMYmA0vX6emLPAK7t5W8Y2lHo7a0crxtRfjWnTyf6IA5BoI')"}}
+                ></div>
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden bg-cover bg-center" 
+                  style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuDppE8nY5kOM2GyH9--vN8XBMFoIZpsI2JOQKn3k7lAnELvs2vOgVwHMmveGI9X7awyZ5OgGtdpvVjFkVmpKs50I7bT89EL5Ms5Ti30cA-Xbfvp_-4kJCnNMwUEAxsT510AvTM_BY4Dxzt5z-9BkCAlJXHRg8uAVkwL8fWthQvZVr_i0oDyhXW0_WJb5qhzupZMuQnOxgYqA6MoehxW5OksW0z6QENBAVZm4o0fpVM9TrJOKyc8EgSMwtLd6hmpQH4u5Bv5MsRsYKQ')"}}
+                ></div>
+                <div 
+                  className="w-8 h-8 rounded-full border-2 border-white bg-gray-200 overflow-hidden bg-cover bg-center" 
+                  style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuBecYB57hzrt49fyTGA6vHQdbj50qYozQLtzpa8Mf74xu8n4WHWhtk91ikFXHkeKsTGcXyAE3wrNkgk3A2r6TtCtk4oRw0kHQRSvBf_eD3RMC8kDf7WOlc5IwfiYRrFLZ_6vdz1XdmyYyuJ8f-LbdYFjVhCEuBfqE2EiUr6esjm0LFIluzXOPpGRh507eBXcRbeeZoFN79bzQy_1-mdB6uZ7I6UsyDmQqFODxE4lllAXOWVWMPOxcQ5Q5dPWXxGg642rNVrJ1Llbdk')"}}
+                ></div>
+              </div>
+              <span>Trusted by over 5,000+ residents worldwide.</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Login Form */}
+        <div className="w-full md:w-3/5 lg:w-3/5 flex flex-col justify-start items-center p-8 lg:p-12 bg-white dark:bg-slate-900 overflow-y-auto">
+          <div className="w-full max-w-[520px] py-8 mt-8">
+            {/* Mobile Logo */}
+            <div className="md:hidden flex items-center gap-2 mb-8">
+              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                <span className="material-symbols-outlined text-xl">domain</span>
+              </div>
+              <span className="text-xl font-black tracking-tight text-gray-900 dark:text-white">HostelHub</span>
+            </div>
+
+            {/* Header */}
+            <div className="mb-8">
+              <h2 className="text-gray-900 dark:text-white text-2xl font-bold leading-tight mb-1">
+                Login to Your Account
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Access the hostel management portal
+              </p>
+            </div>
+
+            {/* Role Selector */}
+            <div className="flex p-1 bg-slate-100 dark:bg-gray-800 rounded-lg mb-8">
+              <button 
+                type="button"
+                onClick={() => handleUserTypeChange('student')}
+                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${
+                  formData.userType === 'student' 
+                    ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' 
+                    : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Student
+              </button>
+              <button 
+                type="button"
+                onClick={() => handleUserTypeChange('admin')}
+                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${
+                  formData.userType === 'admin' 
+                    ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' 
+                    : 'text-gray-600 hover:text-blue-600'
+                }`}
+              >
+                Administrator
+              </button>
+            </div>
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center">
+                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                </svg>
+                {successMessage}
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+                {error}
+              </div>
+            )}
+
+            {/* Login Form */}
+            <form className="space-y-6" onSubmit={handleSubmit}>
+              {/* Email Field */}
+              <div className="space-y-2">
+                <label className="text-gray-900 dark:text-gray-200 text-sm font-semibold leading-normal">
+                  Email Address / Username
+                </label>
+                <div className="relative">
+                  <input 
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white h-12 px-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all placeholder:text-gray-600" 
+                    placeholder="e.g. resident@campus.edu" 
+                    type="text"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Password Field */}
+              <div className="space-y-2">
+                <label className="text-gray-900 dark:text-gray-200 text-sm font-semibold leading-normal">
+                  Password
+                </label>
+                <div className="relative flex items-center">
+                  <input 
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white h-12 px-4 pr-12 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all placeholder:text-gray-600" 
+                    placeholder="Enter your password" 
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                  />
+                  <button 
+                    className="absolute right-4 text-gray-600 hover:text-blue-600 transition-colors" 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <span className="material-symbols-outlined">
+                      {showPassword ? 'visibility_off' : 'visibility'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Remember Me & Forgot Password */}
+              <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <input 
+                    className="h-5 w-5 rounded border-gray-300 dark:border-gray-700 bg-transparent text-blue-600 checked:bg-blue-600 checked:border-blue-600 focus:ring-0 focus:ring-offset-0 transition-colors" 
+                    type="checkbox"
+                    name="rememberMe"
+                    checked={formData.rememberMe}
+                    onChange={handleInputChange}
+                  />
+                  <span className="text-gray-900 dark:text-gray-300 text-sm font-medium group-hover:text-blue-600 transition-colors">
+                    Remember me
+                  </span>
+                </label>
+                <a 
+                  className="text-blue-600 text-sm font-semibold hover:underline decoration-2 underline-offset-4" 
+                  href="#"
+                >
+                  Forgot Password?
+                </a>
+              </div>
+
+              {/* Submit Button */}
+              <button 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-lg font-bold text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50" 
+                type="submit"
+                disabled={loading}
+              >
+                <span>{loading ? 'Signing In...' : 'Sign In'}</span>
+                <span className="material-symbols-outlined text-xl">login</span>
+              </button>
+            </form>
+
+            {/* Register Link */}
+            <div className="mt-8 text-center">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                Don't have an account yet? 
+                <Link className="text-blue-600 font-bold hover:underline ml-1" to="/register">
+                  Register Now
+                </Link>
+              </p>
+            </div>
+
+            {/* Footer Links */}
+            <div className="mt-6 flex justify-center gap-6">
+              <a className="text-gray-500 hover:text-blue-600 transition-colors" href="#" title="Support">
+                <span className="material-symbols-outlined text-xl">help</span>
+              </a>
+              <a className="text-gray-500 hover:text-blue-600 transition-colors" href="#" title="Privacy Policy">
+                <span className="material-symbols-outlined text-xl">description</span>
+              </a>
+              <a className="text-gray-500 hover:text-blue-600 transition-colors" href="#" title="Language">
+                <span className="material-symbols-outlined text-xl">language</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

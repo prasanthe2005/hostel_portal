@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="50" height="50" viewBox="0 0 50 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="50" height="50" rx="8" fill="#3B82F6"/>
+  <rect x="10" y="15" width="30" height="20" rx="2" stroke="white" stroke-width="2" fill="none"/>
+  <rect x="15" y="10" width="20" height="15" rx="2" stroke="white" stroke-width="2" fill="none"/>
+  <circle cx="18" cy="17" r="1" fill="white"/>
+  <circle cx="22" cy="17" r="1" fill="white"/>
+  <circle cx="26" cy="17" r="1" fill="white"/>
+  <circle cx="30" cy="17" r="1" fill="white"/>
+  <text x="25" y="42" text-anchor="middle" fill="white" font-family="Arial" font-size="8">HMS</text>
+</svg>
