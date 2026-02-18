@@ -489,6 +489,9 @@ export async function handleRequest(req,res){
     // Add new allocation
     await conn.query('INSERT INTO room_allocations (student_id,room_id) VALUES (?,?)',[reqRow.student_id, targetRoomId]);
     
+    // Update student allocation status
+    await conn.query("UPDATE student SET allocation_status = 'Allocated' WHERE student_id = ?",[reqRow.student_id]);
+    
     // Update request status
     await conn.query('UPDATE room_change_requests SET status=?, admin_comment=? WHERE request_id=?',['approved',admin_comment||'Request approved',id]);
     
@@ -526,6 +529,10 @@ export async function allocateRoomToStudent(req,res){
     }
     // Allocate room
     await conn.query('INSERT INTO room_allocations (student_id,room_id) VALUES (?,?)',[studentId,roomId]);
+    
+    // Update student allocation status
+    await conn.query("UPDATE student SET allocation_status = 'Allocated' WHERE student_id = ?",[studentId]);
+    
     await conn.commit();
     res.json({message:'Room allocated successfully'});
   }catch(err){ 
@@ -545,6 +552,10 @@ export async function deallocateRoom(req,res){
     if(result.affectedRows === 0){
       return res.status(404).json({error:'No allocation found for this student'});
     }
+    
+    // Update student allocation status back to Pending
+    await conn.query("UPDATE student SET allocation_status = 'Pending' WHERE student_id = ? AND residence_type = 'Hosteller'",[studentId]);
+    
     res.json({message:'Room deallocated successfully'});
   }catch(err){ 
     res.status(500).json({error:err.message}); 

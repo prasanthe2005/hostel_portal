@@ -1,13 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import studentService from '../services/student.service';
-import adminService from '../services/admin.service';
 
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [availableRooms, setAvailableRooms] = useState([]);
-  const [roomsLoading, setRoomsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,26 +19,6 @@ export default function StudentDashboard() {
       }
     }
     load();
-  }, []);
-
-  useEffect(() => {
-    async function loadRooms(){
-      try{
-        const rooms = await adminService.getPublicRooms();
-        // Show all rooms with available capacity (both AC and Non-AC)
-        const available = rooms.filter(room => {
-          const assigned = room.assigned || 0;
-          const capacity = room.capacity || 0;
-          return assigned < capacity && capacity > 0;
-        });
-        setAvailableRooms(available);
-      }catch(err){ 
-        console.error('Error loading rooms:', err); 
-      } finally {
-        setRoomsLoading(false);
-      }
-    }
-    loadRooms();
   }, []);
 
   const name = profile?.name || 'Student';
@@ -175,11 +152,20 @@ export default function StudentDashboard() {
                   </div>
                   <p className="text-sm text-yellow-700 dark:text-yellow-400 ml-11 mb-2">
                     You are a Hosteller with preference for <strong>{preferredRoomType}</strong> rooms.
-                    Your room has not been assigned yet. Please wait for admin approval.
+                    Your room has not been assigned yet. Please submit a room request for admin approval.
                   </p>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-500 ml-11">
+                  <p className="text-xs text-yellow-600 dark:text-yellow-500 ml-11 mb-4">
                     Rooms are allocated on a First Come First Serve (FCFS) basis within your preferred room type.
                   </p>
+                  <div className="ml-11">
+                    <button 
+                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition-all flex items-center gap-2"
+                      onClick={() => navigate('/student/request-room-change')}
+                    >
+                      <span className="material-symbols-outlined text-lg">send</span>
+                      Submit Room Request
+                    </button>
+                  </div>
                 </div>
               ) : hasAllocation ? (
                 <div className="space-y-6">
@@ -248,91 +234,6 @@ export default function StudentDashboard() {
                       </p>
                     </div>
                   </div>
-                </div>
-              )}
-            </section>
-
-            {/* Available Rooms */}
-            <section className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="card-title">Available Rooms</h2>
-                <span className="text-sm text-gray-500">
-                  {roomsLoading ? 'Loading...' : `${availableRooms.length} rooms available`}
-                </span>
-              </div>
-
-              {roomsLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="text-gray-500 ml-3">Loading available rooms...</p>
-                </div>
-              ) : availableRooms.length === 0 ? (
-                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-6 text-center">
-                  <span className="material-symbols-outlined text-gray-400 text-5xl mb-2">hotel</span>
-                  <p className="text-gray-600 dark:text-gray-400 font-medium">No rooms available at the moment</p>
-                  <p className="text-sm text-gray-500 mt-1">Please check back later or contact the admin</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700">
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Hostel</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Room No.</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Floor</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Type</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Capacity</th>
-                        <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Available</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {availableRooms.slice(0, 10).map((room) => (
-                        <tr key={room.room_id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center gap-2">
-                              <span className="material-symbols-outlined text-blue-500 text-lg">apartment</span>
-                              <span className="font-medium text-sm">{room.hostel_name}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="font-semibold text-blue-600">{room.room_number}</span>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            Floor {room.floor_number}
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
-                              room.type === 'AC' 
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'
-                                : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
-                            }`}>
-                              {room.type === 'AC' && <span className="material-symbols-outlined text-xs">ac_unit</span>}
-                              {room.type}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
-                            {room.capacity} beds
-                          </td>
-                          <td className="py-3 px-4">
-                            <span className="inline-flex items-center gap-1 text-sm font-semibold text-green-600 dark:text-green-400">
-                              <span className="material-symbols-outlined text-lg">check_circle</span>
-                              {room.capacity - (room.assigned || 0)} beds
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {availableRooms.length > 10 && (
-                    <div className="mt-4 text-center">
-                      <button 
-                        className="text-sm text-blue-600 hover:text-blue-700 font-medium"
-                        onClick={() => navigate('/student/request-room-change')}
-                      >
-                        View all {availableRooms.length} available rooms →
-                      </button>
-                    </div>
-                  )}
                 </div>
               )}
             </section>

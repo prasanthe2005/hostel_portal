@@ -127,7 +127,7 @@ export default function Login() {
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center font-display">
       <div className="flex h-screen w-full overflow-hidden flex-col md:flex-row">
         {/* Left Side: Campus Image & Branding */}
-        <div className="hidden md:flex md:w-2/5 lg:w-2/5 bg-blue-600 relative overflow-hidden">
+        <div className="hidden md:flex md:w-1/2 lg:w-1/2 bg-blue-600 relative overflow-hidden">
           <div 
             className="absolute inset-0 bg-cover bg-center" 
             style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCF3wlPEBDyHRZRSrEUsGO5d4PGe9WT0BrJZrFZizN6NGOcm6Pk1WQq6R283PaDQPNRfqAtqTdWYkHBh5aPe74E0OrNM6WDU7hDb7PT2WbQ2kFvA1NgcmfIfyzUYalEooxcfEeFM-eOXfk-2gEXrnd1jceMR-ewdGo2fBAuilt_8GPSFwznX-UB7RTQWgAf8tQ1f1ULdSufYdYXCyueNlIv7upxq3dqEQh76fPGqX6IaxV4QQO_i8UzSNV0A70Cw1C_C7xErA4QPGM')"}}
@@ -170,8 +170,8 @@ export default function Login() {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="w-full md:w-3/5 lg:w-3/5 flex flex-col justify-start items-center p-8 lg:p-12 bg-white dark:bg-slate-900 overflow-y-auto">
-          <div className="w-full max-w-[520px] py-8 mt-8">
+        <div className="w-full md:w-1/2 lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-10 bg-white dark:bg-slate-900 overflow-y-auto">
+          <div className="w-full max-w-[480px]">
             {/* Mobile Logo */}
             <div className="md:hidden flex items-center gap-2 mb-8">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
@@ -181,7 +181,7 @@ export default function Login() {
             </div>
 
             {/* Header */}
-            <div className="mb-8">
+            <div className="mb-6">
               <h2 className="text-gray-900 dark:text-white text-2xl font-bold leading-tight mb-1">
                 Login to Your Account
               </h2>
@@ -191,7 +191,7 @@ export default function Login() {
             </div>
 
             {/* Role Selector */}
-            <div className="flex p-1 bg-slate-100 dark:bg-gray-800 rounded-lg mb-8">
+            <div className="flex p-1 bg-slate-100 dark:bg-gray-800 rounded-lg mb-6">
               <button 
                 type="button"
                 onClick={() => handleUserTypeChange('student')}
@@ -218,7 +218,7 @@ export default function Login() {
 
             {/* Success Message */}
             {successMessage && (
-              <div className="mb-6 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center">
+              <div className="mb-5 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center">
                 <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
@@ -228,13 +228,13 @@ export default function Login() {
 
             {/* Error Message */}
             {error && (
-              <div className="mb-6 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              <div className="mb-5 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
                 {error}
               </div>
             )}
 
             {/* Login Form */}
-            <form className="space-y-6" onSubmit={handleSubmit}>
+            <form className="space-y-5" onSubmit={handleSubmit}>
               {/* Email Field */}
               <div className="space-y-2">
                 <label className="text-gray-900 dark:text-gray-200 text-sm font-semibold leading-normal">
@@ -314,7 +314,7 @@ export default function Login() {
             </form>
 
             {/* Register Link */}
-            <div className="mt-8 text-center">
+            <div className="mt-6 text-center">
               <p className="text-gray-600 dark:text-gray-400 text-sm">
                 Don't have an account yet? 
                 <Link className="text-blue-600 font-bold hover:underline ml-1" to="/register">

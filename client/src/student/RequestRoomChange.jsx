@@ -51,7 +51,12 @@ export default function RequestRoomChange() {
     }
 
     if (!reason.trim()) {
-      setMessage({ type: 'error', text: 'Please provide a reason for room change' });
+      setMessage({ 
+        type: 'error', 
+        text: profile?.room_number 
+          ? 'Please provide a reason for room change' 
+          : 'Please provide a reason for room request' 
+      });
       return;
     }
 
@@ -66,7 +71,12 @@ export default function RequestRoomChange() {
         reason: reason.trim()
       });
       
-      setMessage({ type: 'success', text: 'Room change request submitted successfully!' });
+      setMessage({ 
+        type: 'success', 
+        text: profile?.room_number 
+          ? 'Room change request submitted successfully!' 
+          : 'Room request submitted successfully!' 
+      });
       
       // Clear form
       setChoice1('');
@@ -101,7 +111,7 @@ export default function RequestRoomChange() {
           <nav className="hidden md:flex items-center gap-6">
             <a onClick={() => navigate('/student/dashboard')} className="nav-link cursor-pointer">Dashboard</a>
             <a className="text-blue-500 font-semibold border-b-2 border-blue-500 pb-1">
-              Room Change Request
+              {profile?.room_number ? 'Room Change' : 'Room Request'}
             </a>
           </nav>
         </div>
@@ -116,9 +126,13 @@ export default function RequestRoomChange() {
       {/* Main */}
       <main className="flex-1 max-w-[1200px] mx-auto w-full p-6 md:p-10">
         <div className="mb-8">
-          <h1 className="text-3xl font-black mb-2">Room Change Request</h1>
+          <h1 className="text-3xl font-black mb-2">
+            {profile?.room_number ? 'Room Change Request' : 'Room Request'}
+          </h1>
           <p className="text-gray-500">
-            Select up to 3 room preferences and provide a reason for the change.
+            {profile?.room_number 
+              ? 'Select up to 3 room preferences and provide a reason for the change.'
+              : 'Select up to 3 room preferences and provide a reason for your room request.'}
           </p>
         </div>
 
@@ -190,10 +204,14 @@ export default function RequestRoomChange() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Reason for Change *</label>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                    {profile?.room_number ? 'Reason for Change *' : 'Reason for Request *'}
+                  </label>
                   <textarea
                     rows="5"
-                    placeholder="Type your reason here... (e.g., Need to be closer to library, Medical reasons, etc.)"
+                    placeholder={profile?.room_number 
+                      ? "Type your reason here... (e.g., Need to be closer to library, Medical reasons, etc.)"
+                      : "Type your reason here... (e.g., Prefer AC room, Need specific floor, etc.)"}
                     className="w-full px-4 py-3 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
