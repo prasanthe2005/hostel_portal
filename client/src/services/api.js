@@ -12,6 +12,8 @@ export const api = {
         headers: {
           'Content-Type': 'application/json',
         },
+        // Disable caching to ensure fresh data
+        cache: 'no-store',
       };
 
       // Add auth token if available
@@ -38,6 +40,19 @@ export const api = {
         } catch (e) {
           // If JSON parsing fails, use default error message
         }
+        
+        // If it's a 401 or 403, might be token issue - clear and redirect
+        if (response.status === 401 || response.status === 403) {
+          console.error('Authentication error - clearing token and redirecting to login');
+          localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userData');
+          // Redirect to login after a short delay
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1000);
+        }
+        
         throw new Error(errorMessage);
       }
 

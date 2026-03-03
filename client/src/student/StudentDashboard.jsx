@@ -5,20 +5,34 @@ import studentService from '../services/student.service';
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    async function load(){
-      try{
-        const me = await studentService.getProfile();
-        setProfile(me);
-      }catch(err){ 
-        console.error(err); 
-      } finally {
-        setLoading(false);
+  const loadProfile = async () => {
+    setLoading(true);
+    setError(null);
+    try{
+      const me = await studentService.getProfile();
+      setProfile(me);
+    }catch(err){ 
+      console.error('Error loading profile:', err);
+      const errorMsg = err.message || 'Failed to load profile data';
+      setError(errorMsg);
+      
+      // If it's an authentication error, redirect to login after showing error
+      if (errorMsg.includes('Forbidden') || errorMsg.includes('Unauthorized') || errorMsg.includes('Invalid token')) {
+        setTimeout(() => {
+          localStorage.clear();
+          navigate('/login');
+        }, 2000);
       }
+    } finally {
+      setLoading(false);
     }
-    load();
+  };
+
+  useEffect(() => {
+    loadProfile();
   }, []);
 
   const name = profile?.name || 'Student';
@@ -42,6 +56,8 @@ export default function StudentDashboard() {
   const roomType = profile?.type || 'N/A';
   const allocatedDate = profile?.allocated_at ? new Date(profile.allocated_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
   const hasAllocation = allocationStatus === 'Allocated' && profile?.room_number;
+  const hasPendingRequest = profile?.has_pending_request || false;
+  const pendingRequestDate = profile?.pending_request_date ? new Date(profile.pending_request_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   return (
     <div className="font-display bg-gray-50 dark:bg-slate-900 text-[#111418] dark:text-gray-100 min-h-screen">
@@ -65,6 +81,13 @@ export default function StudentDashboard() {
         </div>
 
         <div className="flex items-center gap-3">
+          <button 
+            className="icon-btn" 
+            onClick={loadProfile}
+            title="Refresh data"
+          >
+            <span className="material-symbols-outlined">refresh</span>
+          </button>
           <button className="icon-btn">
             <span className="material-symbols-outlined">notifications</span>
           </button>
@@ -76,6 +99,31 @@ export default function StudentDashboard() {
 
       {/* Main Content */}
       <main className="max-w-[1200px] mx-auto px-4 md:px-10 py-8">
+
+        {/* Error Alert */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-red-600 text-2xl">error</span>
+              <div className="flex-1">
+                <p className="text-red-800 dark:text-red-300 font-semibold">Authentication Error</p>
+                <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                  {error}
+                  {(error.includes('Forbidden') || error.includes('Unauthorized')) && 
+                    ' - Your session has expired or you logged in as the wrong user type. Redirecting to login...'}
+                </p>
+              </div>
+              {!error.includes('Forbidden') && !error.includes('Unauthorized') && (
+                <button 
+                  onClick={loadProfile}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition-colors"
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Profile Card */}
         <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6 mb-8">
@@ -109,13 +157,22 @@ export default function StudentDashboard() {
                 <span className="material-symbols-outlined text-lg">description</span>
                 ID Card
               </button>
-              {hasAllocation && (
+              {hasAllocation && !hasPendingRequest && (
                 <button 
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm transition-all flex items-center gap-2"
                   onClick={() => navigate('/student/request-room-change')}
                 >
                   <span className="material-symbols-outlined text-sm">swap_horiz</span>
                   Room Change
+                </button>
+              )}
+              {hasPendingRequest && (
+                <button 
+                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium text-sm shadow-sm flex items-center gap-2 cursor-not-allowed"
+                  disabled
+                >
+                  <span className="material-symbols-outlined text-sm">schedule</span>
+                  Request Pending
                 </button>
               )}
             </div>
@@ -145,28 +202,43 @@ export default function StudentDashboard() {
                   </p>
                 </div>
               ) : allocationStatus === 'Pending' ? (
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="material-symbols-outlined text-yellow-600 text-2xl">schedule</span>
-                    <p className="text-yellow-800 dark:text-yellow-300 font-semibold text-lg">Room Allocation Pending</p>
+                hasPendingRequest ? (
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="material-symbols-outlined text-blue-600 text-2xl">schedule</span>
+                      <p className="text-blue-800 dark:text-blue-300 font-semibold text-lg">Room Request Under Review</p>
+                    </div>
+                    <p className="text-sm text-blue-700 dark:text-blue-400 ml-11 mb-2">
+                      Your room request has been submitted on <strong>{pendingRequestDate}</strong> and is awaiting admin approval.
+                    </p>
+                    <p className="text-xs text-blue-600 dark:text-blue-500 ml-11">
+                      You will be notified once the admin reviews your request. Please check back later.
+                    </p>
                   </div>
-                  <p className="text-sm text-yellow-700 dark:text-yellow-400 ml-11 mb-2">
-                    You are a Hosteller with preference for <strong>{preferredRoomType}</strong> rooms.
-                    Your room has not been assigned yet. Please submit a room request for admin approval.
-                  </p>
-                  <p className="text-xs text-yellow-600 dark:text-yellow-500 ml-11 mb-4">
-                    Rooms are allocated on a First Come First Serve (FCFS) basis within your preferred room type.
-                  </p>
-                  <div className="ml-11">
-                    <button 
-                      className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition-all flex items-center gap-2"
-                      onClick={() => navigate('/student/request-room-change')}
-                    >
-                      <span className="material-symbols-outlined text-lg">send</span>
-                      Submit Room Request
-                    </button>
+                ) : (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="material-symbols-outlined text-yellow-600 text-2xl">schedule</span>
+                      <p className="text-yellow-800 dark:text-yellow-300 font-semibold text-lg">Room Allocation Pending</p>
+                    </div>
+                    <p className="text-sm text-yellow-700 dark:text-yellow-400 ml-11 mb-2">
+                      You are a Hosteller with preference for <strong>{preferredRoomType}</strong> rooms.
+                      Your room has not been assigned yet. Please submit a room request for admin approval.
+                    </p>
+                    <p className="text-xs text-yellow-600 dark:text-yellow-500 ml-11 mb-4">
+                      Rooms are allocated on a First Come First Serve (FCFS) basis within your preferred room type.
+                    </p>
+                    <div className="ml-11">
+                      <button 
+                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition-all flex items-center gap-2"
+                        onClick={() => navigate('/student/request-room-change')}
+                      >
+                        <span className="material-symbols-outlined text-lg">send</span>
+                        Submit Room Request
+                      </button>
+                    </div>
                   </div>
-                </div>
+                )
               ) : hasAllocation ? (
                 <div className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -212,15 +284,32 @@ export default function StudentDashboard() {
                   </div>
                   
                   <div className="pt-4 border-t dark:border-gray-700">
-                    <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                      <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-green-600">check_circle</span>
-                        <span className="text-sm font-semibold text-green-800 dark:text-green-300">Status: Allocated</span>
+                    {hasPendingRequest ? (
+                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-blue-600">schedule</span>
+                            <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">Room Change Request Pending</span>
+                          </div>
+                          <span className="text-sm text-blue-700 dark:text-blue-400">
+                            <span className="font-medium">Submitted on:</span> {pendingRequestDate}
+                          </span>
+                        </div>
+                        <p className="text-xs text-blue-600 dark:text-blue-500 mt-2 ml-8">
+                          Your room change request is under review by the admin.
+                        </p>
                       </div>
-                      <span className="text-sm text-green-700 dark:text-green-400">
-                        <span className="font-medium">Allocated on:</span> {allocatedDate}
-                      </span>
-                    </div>
+                    ) : (
+                      <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-green-600">check_circle</span>
+                          <span className="text-sm font-semibold text-green-800 dark:text-green-300">Status: Allocated</span>
+                        </div>
+                        <span className="text-sm text-green-700 dark:text-green-400">
+                          <span className="font-medium">Allocated on:</span> {allocatedDate}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (

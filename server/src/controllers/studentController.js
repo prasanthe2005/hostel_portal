@@ -20,8 +20,25 @@ export async function dashboard(req,res){
       WHERE s.student_id = ?
     `;
     const [rows] = await conn.query(query, [studentId]);
-    // return single row (or empty)
-    res.json(rows[0] || null);
+    const studentData = rows[0] || null;
+    
+    if (studentData) {
+      // Check for pending room change request
+      const [pendingRequests] = await conn.query(
+        'SELECT request_id, created_at FROM room_change_requests WHERE student_id = ? AND status = "pending" ORDER BY created_at DESC LIMIT 1',
+        [studentId]
+      );
+      
+      if (pendingRequests.length > 0) {
+        studentData.has_pending_request = true;
+        studentData.pending_request_id = pendingRequests[0].request_id;
+        studentData.pending_request_date = pendingRequests[0].created_at;
+      } else {
+        studentData.has_pending_request = false;
+      }
+    }
+    
+    res.json(studentData);
   }catch(err){ res.status(500).json({error:err.message}); }finally{ conn.release(); }
 }
 

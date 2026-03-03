@@ -12,34 +12,39 @@ export default function RequestRoomChange() {
   const [reason, setReason] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null);
+  const [dataLoading, setDataLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    async function load(){
-      try{
-        const [r, p] = await Promise.all([adminService.getPublicRooms(), studentService.getProfile()]);
-        console.log('Loaded rooms from API:', r);
-        console.log('Student profile:', p);
-        
-        // Show ALL rooms that have available capacity
-        // Students can request any room type (AC or Non-AC) regardless of their current preference
-        const availableRooms = r.filter(room => {
-          const assigned = room.assigned || 0;
-          const capacity = room.capacity || 0;
-          const hasSpace = assigned < capacity;
-          console.log(`Room ${room.room_number}: type=${room.type}, assigned=${assigned}/${capacity}, hasSpace=${hasSpace}`);
-          return hasSpace && capacity > 0;
-        });
-        
-        console.log(`Total rooms: ${r.length}, Available rooms: ${availableRooms.length}`);
-        setRooms(availableRooms);
-        setProfile(p);
-      }catch(err){ 
-        console.error('Error loading data:', err);
-        setMessage({ type: 'error', text: 'Failed to load data' });
-      }
+  const loadData = async () => {
+    setDataLoading(true);
+    try{
+      const [r, p] = await Promise.all([adminService.getPublicRooms(), studentService.getProfile()]);
+      console.log('Loaded rooms from API:', r);
+      console.log('Student profile:', p);
+      
+      // Show ALL rooms that have available capacity
+      // Students can request any room type (AC or Non-AC) regardless of their current preference
+      const availableRooms = r.filter(room => {
+        const assigned = room.assigned || 0;
+        const capacity = room.capacity || 0;
+        const hasSpace = assigned < capacity;
+        console.log(`Room ${room.room_number}: type=${room.type}, assigned=${assigned}/${capacity}, hasSpace=${hasSpace}`);
+        return hasSpace && capacity > 0;
+      });
+      
+      console.log(`Total rooms: ${r.length}, Available rooms: ${availableRooms.length}`);
+      setRooms(availableRooms);
+      setProfile(p);
+    }catch(err){ 
+      console.error('Error loading data:', err);
+      setMessage({ type: 'error', text: 'Failed to load data' });
+    } finally {
+      setDataLoading(false);
     }
-    load();
+  };
+
+  useEffect(() => {
+    loadData();
   }, []);
 
   const handleSubmit = async (e) => {
@@ -117,6 +122,13 @@ export default function RequestRoomChange() {
         </div>
 
         <div className="flex items-center gap-4">
+          <button 
+            className="icon-btn" 
+            onClick={loadData}
+            title="Refresh data"
+          >
+            <span className="material-symbols-outlined">refresh</span>
+          </button>
           <button className="icon-btn" onClick={() => navigate('/student/dashboard')}>
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
@@ -164,11 +176,18 @@ export default function RequestRoomChange() {
                 Current Room Details
               </h3>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-4 bg-blue-500/5 p-4 rounded-lg">
-                <Info label="Hostel / Block" value={profile?.hostel_name || 'Not assigned'} />
-                <Info label="Room Number" value={profile?.room_number || 'Not assigned'} />
-                <Info label="Room Type" value={profile?.type || '—'} />
-              </div>
+              {dataLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <p className="text-gray-500 ml-3">Loading...</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-4 bg-blue-500/5 p-4 rounded-lg">
+                  <Info label="Hostel / Block" value={profile?.hostel_name || 'Not assigned'} />
+                  <Info label="Room Number" value={profile?.room_number || 'Not assigned'} />
+                  <Info label="Room Type" value={profile?.type || '—'} />
+                </div>
+              )}
             </section>
 
             {/* Request Form */}
@@ -179,7 +198,25 @@ export default function RequestRoomChange() {
               </h3>
 
               <form className="space-y-6" onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {profile?.has_pending_request ? (
+                  <div className="bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800 rounded-lg p-6 text-center">
+                    <span className="material-symbols-outlined text-blue-600 text-5xl mb-3">schedule</span>
+                    <h4 className="text-xl font-bold text-blue-900 dark:text-blue-100 mb-2">Request Already Submitted</h4>
+                    <p className="text-sm text-blue-700 dark:text-blue-400 mb-4">
+                      You already have a pending room {profile?.room_number ? 'change' : ''} request. 
+                      Please wait for admin approval before submitting another request.
+                    </p>
+                    <button 
+                      type="button"
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                      onClick={() => navigate('/student/dashboard')}
+                    >
+                      Back to Dashboard
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Select 
                     label="1st Preference" 
                     rooms={rooms} 
@@ -254,6 +291,8 @@ export default function RequestRoomChange() {
                     )}
                   </button>
                 </div>
+                  </>
+                )}
               </form>
             </section>
           </div>
