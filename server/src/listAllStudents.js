@@ -5,7 +5,7 @@ dotenv.config();
 async function listStudents() {
   const conn = await pool.getConnection();
   try {
-    const [students] = await conn.query('SELECT student_id, name, email, roll_number, department, created_at FROM students ORDER BY created_at DESC');
+    const [students] = await conn.query('SELECT student_id, name, email, roll_number, department, created_at FROM student ORDER BY created_at DESC');
     
     console.log('\n=== All Students in Database ===\n');
     if (students.length === 0) {

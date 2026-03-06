@@ -9,9 +9,13 @@ import ManageHostels from '../admin/ManageHostels';
 import ManageRooms from '../admin/ManageRooms';
 import RoomRequests from '../admin/RoomRequests';
 import ManageStudents from '../admin/ManageStudents';
+import ManageCaretakers from '../admin/ManageCaretakers';
 import StudentDashboard from '../student/StudentDashboard';
 import RequestRoom from '../pages/student/RequestRoom';
 import RequestRoomChange from '../student/RequestRoomChange';
+import SubmitComplaint from '../pages/student/SubmitComplaint';
+import MyComplaints from '../pages/student/MyComplaints';
+import CaretakerDashboard from '../caretaker/CaretakerDashboard';
 
 const AppRoutes = () => {
   const location = useLocation();
@@ -77,6 +81,9 @@ const AppRoutes = () => {
         </PublicRoute>
       } />
 
+      {/* Caretaker Routes */}
+      <Route path="/caretaker/dashboard" element={<CaretakerDashboard />} />
+
       {/* Admin Routes - Direct Access (No Auth Required) */}
       <Route path="/admin/dashboard" element={
         <AdminLayout title="Dashboard">
@@ -107,25 +114,23 @@ const AppRoutes = () => {
           <ManageStudents />
         </AdminLayout>
       } />
+
+      <Route path="/admin/caretakers" element={
+        <AdminLayout title="Manage Caretakers">
+          <ManageCaretakers />
+        </AdminLayout>
+      } />
       
       {/* Student Routes - Direct Access (No Auth Required) */}
-      <Route path="/student/dashboard" element={
-        <Layout>
-          <StudentDashboard />
-        </Layout>
-      } />
+      <Route path="/student/dashboard" element={<StudentDashboard />} />
       
-      <Route path="/student/request-room" element={
-        <Layout>
-          <RequestRoom />
-        </Layout>
-      } />
+      <Route path="/student/request-room" element={<RequestRoom />} />
+      
+      <Route path="/student/submit-complaint" element={<SubmitComplaint />} />
 
-      <Route path="/student/request-room-change" element={
-        <Layout>
-          <RequestRoomChange />
-        </Layout>
-      } />
+      <Route path="/student/complaints" element={<MyComplaints />} />
+
+      <Route path="/student/request-room-change" element={<RequestRoomChange />} />
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />

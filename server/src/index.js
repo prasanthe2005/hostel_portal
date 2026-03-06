@@ -5,6 +5,8 @@ import authRoutes from './routes/auth.js';
 import adminRoutes from './routes/admin.js';
 import studentRoutes from './routes/student.js';
 import publicRoutes from './routes/public.js';
+import complaintRoutes from './routes/complaint.js';
+import caretakerRoutes from './routes/caretaker.js';
 import pool from './config/db.js';
 
 dotenv.config();
@@ -15,6 +17,8 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/student', studentRoutes);
+app.use('/api/complaints', complaintRoutes);
+app.use('/api/caretaker', caretakerRoutes);
 app.use('/api', publicRoutes);
 
 app.get('/health', (req,res)=>res.json({ok:true}));

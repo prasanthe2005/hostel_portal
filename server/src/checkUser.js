@@ -6,7 +6,7 @@ async function checkUser() {
   const email = process.argv[2] || 'prasanth.cs23@bitsathy.ac.in';
   const conn = await pool.getConnection();
   try {
-    const [students] = await conn.query('SELECT student_id, name, email, roll_number FROM students WHERE email=?', [email]);
+    const [students] = await conn.query('SELECT student_id, name, email, roll_number FROM student WHERE email=?', [email]);
     const [admins] = await conn.query('SELECT admin_id, name, email FROM admins WHERE email=?', [email]);
     
     console.log('\n=== Checking email:', email, '===\n');

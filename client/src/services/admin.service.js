@@ -208,6 +208,58 @@ export const adminService = {
       console.error('Logout error:', error);
       throw error;
     }
+  },
+
+  // Caretaker management
+  getCaretakers: async () => {
+    try {
+      const res = await api.get('/admin/caretakers');
+      return res || [];
+    } catch (err) {
+      console.error('Error fetching caretakers:', err);
+      throw err;
+    }
+  },
+
+  createCaretaker: async (data) => {
+    try {
+      const res = await api.post('/admin/caretakers', data);
+      return res;
+    } catch (err) {
+      console.error('Error creating caretaker:', err);
+      throw err;
+    }
+  },
+
+  updateCaretaker: async (id, data) => {
+    try {
+      const res = await api.put(`/admin/caretakers/${id}`, data);
+      return res;
+    } catch (err) {
+      console.error('Error updating caretaker:', err);
+      throw err;
+    }
+  },
+
+  deleteCaretaker: async (id) => {
+    try {
+      const res = await api.delete(`/admin/caretakers/${id}`);
+      return res;
+    } catch (err) {
+      console.error('Error deleting caretaker:', err);
+      throw err;
+    }
+  },
+
+  // Complaint management for admin
+  getComplaintsStats: async () => {
+    try {
+      const res = await api.get('/admin/complaints/stats');
+      return res || { total: 0, pending: 0, in_progress: 0, resolved: 0 };
+    } catch (err) {
+      console.error('Error fetching complaints stats:', err);
+      return { total: 0, pending: 0, in_progress: 0, resolved: 0 };
+    }
   }
 };
 

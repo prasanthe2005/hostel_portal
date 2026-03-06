@@ -14,13 +14,16 @@ export default function StudentDashboard() {
     try{
       const me = await studentService.getProfile();
       setProfile(me);
+      setError(null); // Clear any previous errors
     }catch(err){ 
       console.error('Error loading profile:', err);
       const errorMsg = err.message || 'Failed to load profile data';
       setError(errorMsg);
       
-      // If it's an authentication error, redirect to login after showing error
-      if (errorMsg.includes('Forbidden') || errorMsg.includes('Unauthorized') || errorMsg.includes('Invalid token')) {
+      // Only redirect to login if it's a clear authentication error
+      // and not just a network or temporary error
+      if (errorMsg.includes('Unauthorized') || errorMsg.includes('Invalid token') || errorMsg.includes('Forbidden')) {
+        console.log('Authentication error detected, redirecting to login in 2 seconds...');
         setTimeout(() => {
           localStorage.clear();
           navigate('/login');
@@ -71,8 +74,17 @@ export default function StudentDashboard() {
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
-            <a className="text-blue-500 text-sm font-semibold border-b-2 border-blue-500 pb-1">
+            <a 
+              href="/student/dashboard"
+              className="text-blue-500 text-sm font-semibold border-b-2 border-blue-500 pb-1"
+            >
               Dashboard
+            </a>
+            <a 
+              href="/student/complaints" 
+              className="nav-link hover:text-blue-500 cursor-pointer transition-colors"
+            >
+              My Complaints
             </a>
             <a className="nav-link">Room Service</a>
             <a className="nav-link">Payments</a>
@@ -126,17 +138,18 @@ export default function StudentDashboard() {
         )}
 
         {/* Profile Card */}
-        <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6 mb-8">
-          <div className="flex flex-col md:flex-row justify-between gap-6">
-            <div className="flex items-center gap-6">
-              <div
-                className="w-24 h-24 rounded-full bg-cover bg-center border-4 border-blue-500/10"
-                style={{
-                  backgroundImage:
-                    'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAcAtE5chVKnohzueKBydUS5pdI7Aka50_jGjA2I9xgyhhlHDxzzRY1VMWyhOApnwrBZPfoOE5yIC5StJDZolZPzeBrzdQvj9KI-gKlmn94GQM4cn4DYBZGpD7g-GDKTmMrys9XmEhQGcGMCWebmb7cLgCbstX8-1QAWAkhEdqzMSIgfKXBJylAkeB7vacUwwJhAvQLswYB26RBqTpE9uNfEyofKMOU3ShFC9DtX98WG8Q8K2gIDBA4WORAjzOWLOOvK4nfJgyF_l0")',
-                }}
-              />
+<section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-6 py-4 mb-6">
+  <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 
+    {/* Avatar + Info */}
+    <div className="flex items-center gap-4">
+      <div
+        className="w-16 h-16 rounded-full bg-cover bg-center border-2 border-blue-100 dark:border-blue-900 flex-shrink-0"
+        style={{
+          backgroundImage:
+            'url("https://lh3.googleusercontent.com/aida-public/AB6AXuAcAtE5chVKnohzueKBydUS5pdI7Aka50_jGjA2I9xgyhhlHDxzzRY1VMWyhOApnwrBZPfoOE5yIC5StJDZolZPzeBrzdQvj9KI-gKlmn94GQM4cn4DYBZGpD7g-GDKTmMrys9XmEhQGcGMCWebmb7cLgCbstX8-1QAWAkhEdqzMSIgfKXBJylAkeB7vacUwwJhAvQLswYB26RBqTpE9uNfEyofKMOU3ShFC9DtX98WG8Q8K2gIDBA4WORAjzOWLOOvK4nfJgyF_l0")',
+        }}
+      />
               <div>
                 <h1 className="text-2xl font-bold">{name}</h1>
                 <p className="text-sm text-gray-500">Student ID: {studentId}</p>
@@ -145,189 +158,195 @@ export default function StudentDashboard() {
                   <span className="material-symbols-outlined text-sm">mail</span>
                   {email}
                 </div>
-              </div>
-            </div>
+      </div>
+    </div>
 
-            <div className="flex gap-3 flex-wrap">
-              <button className="primary-btn">
-                <span className="material-symbols-outlined text-lg">edit</span>
-                Edit Profile
-              </button>
-              <button className="secondary-btn">
-                <span className="material-symbols-outlined text-lg">description</span>
-                ID Card
-              </button>
-              {hasAllocation && !hasPendingRequest && (
-                <button 
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium text-sm shadow-sm transition-all flex items-center gap-2"
-                  onClick={() => navigate('/student/request-room-change')}
-                >
-                  <span className="material-symbols-outlined text-sm">swap_horiz</span>
-                  Room Change
-                </button>
-              )}
-              {hasPendingRequest && (
-                <button 
-                  className="px-4 py-2 bg-yellow-600 text-white rounded-lg font-medium text-sm shadow-sm flex items-center gap-2 cursor-not-allowed"
-                  disabled
-                >
-                  <span className="material-symbols-outlined text-sm">schedule</span>
-                  Request Pending
-                </button>
-              )}
-            </div>
-          </div>
-        </section>
+    {/* Action Buttons */}
+    <div className="flex items-center gap-2 flex-wrap">
+
+      {/* Icon-only utility buttons */}
+      <div className="flex items-center gap-1.5">
+        <button
+          title="Edit Profile"
+          className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 hover:text-blue-600 transition-colors"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>edit</span>
+        </button>
+        <button
+          title="ID Card"
+          className="w-8 h-8 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 hover:text-purple-600 transition-colors"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 16 }}>badge</span>
+        </button>
+      </div>
+
+      {/* Divider */}
+      <div className="w-px h-5 bg-gray-200 dark:bg-gray-700" />
+
+      {/* Complaint */}
+      <button
+        className="h-10 px-3 rounded-lg bg-orange-50 hover:bg-orange-100 dark:bg-orange-900/20 dark:hover:bg-orange-900/30 border border-orange-200 dark:border-orange-800 text-orange-600 dark:text-orange-400 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+        onClick={() => navigate('/student/submit-complaint')}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>report_problem</span>
+        Complaint
+      </button>
+
+      {/* Room Change */}
+      {hasAllocation && !hasPendingRequest && (
+        <button
+          className="h-10 px-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+          onClick={() => navigate('/student/request-room-change')}
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>swap_horiz</span>
+          Room Change
+        </button>
+      )}
+
+      {/* Pending */}
+      {hasPendingRequest && (
+        <div className="h-8 px-3 rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 text-yellow-600 dark:text-yellow-400 text-xs font-semibold flex items-center gap-1.5 select-none cursor-not-allowed">
+          <span className="material-symbols-outlined" style={{ fontSize: 14 }}>schedule</span>
+          Pending
+        </div>
+      )}
+
+    </div>
+  </div>
+</section>
 
         {/* Grid Layout */}
         <div className="space-y-8">
 
             {/* Room Details */}
-            <section className="card">
-              <h2 className="card-title mb-4">Current Room Allocation</h2>
+           <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-5 mb-6">
 
-              {loading ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <p className="text-gray-500 ml-3">Loading...</p>
-                </div>
-              ) : allocationStatus === 'Not Applicable' ? (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="material-symbols-outlined text-blue-600 text-2xl">info</span>
-                    <p className="text-blue-800 dark:text-blue-300 font-semibold text-lg">Day Scholar</p>
-                  </div>
-                  <p className="text-sm text-blue-700 dark:text-blue-400 ml-11">
-                    You are registered as a Day Scholar. Hostel room allocation is not applicable for you.
-                  </p>
-                </div>
-              ) : allocationStatus === 'Pending' ? (
-                hasPendingRequest ? (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="material-symbols-outlined text-blue-600 text-2xl">schedule</span>
-                      <p className="text-blue-800 dark:text-blue-300 font-semibold text-lg">Room Request Under Review</p>
-                    </div>
-                    <p className="text-sm text-blue-700 dark:text-blue-400 ml-11 mb-2">
-                      Your room request has been submitted on <strong>{pendingRequestDate}</strong> and is awaiting admin approval.
-                    </p>
-                    <p className="text-xs text-blue-600 dark:text-blue-500 ml-11">
-                      You will be notified once the admin reviews your request. Please check back later.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
-                    <div className="flex items-center gap-3 mb-2">
-                      <span className="material-symbols-outlined text-yellow-600 text-2xl">schedule</span>
-                      <p className="text-yellow-800 dark:text-yellow-300 font-semibold text-lg">Room Allocation Pending</p>
-                    </div>
-                    <p className="text-sm text-yellow-700 dark:text-yellow-400 ml-11 mb-2">
-                      You are a Hosteller with preference for <strong>{preferredRoomType}</strong> rooms.
-                      Your room has not been assigned yet. Please submit a room request for admin approval.
-                    </p>
-                    <p className="text-xs text-yellow-600 dark:text-yellow-500 ml-11 mb-4">
-                      Rooms are allocated on a First Come First Serve (FCFS) basis within your preferred room type.
-                    </p>
-                    <div className="ml-11">
-                      <button 
-                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold text-sm shadow-sm transition-all flex items-center gap-2"
-                        onClick={() => navigate('/student/request-room-change')}
-                      >
-                        <span className="material-symbols-outlined text-lg">send</span>
-                        Submit Room Request
-                      </button>
-                    </div>
-                  </div>
-                )
-              ) : hasAllocation ? (
-                <div className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-800">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="material-symbols-outlined text-blue-600 text-3xl">apartment</span>
-                        <div>
-                          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold uppercase">Hostel Name</p>
-                          <p className="text-lg font-bold text-blue-900 dark:text-blue-100">{hostelName}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-100 dark:border-green-800">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="material-symbols-outlined text-green-600 text-3xl">meeting_room</span>
-                        <div>
-                          <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase">Room Number</p>
-                          <p className="text-lg font-bold text-green-900 dark:text-green-100">{roomNumber}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-100 dark:border-purple-800">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="material-symbols-outlined text-purple-600 text-3xl">layers</span>
-                        <div>
-                          <p className="text-xs text-purple-600 dark:text-purple-400 font-semibold uppercase">Floor Number</p>
-                          <p className="text-lg font-bold text-purple-900 dark:text-purple-100">Floor {floorNumber}</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4 border border-orange-100 dark:border-orange-800">
-                      <div className="flex items-center gap-3 mb-3">
-                        <span className="material-symbols-outlined text-orange-600 text-3xl">ac_unit</span>
-                        <div>
-                          <p className="text-xs text-orange-600 dark:text-orange-400 font-semibold uppercase">Room Type</p>
-                          <p className="text-lg font-bold text-orange-900 dark:text-orange-100">{roomType}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4 border-t dark:border-gray-700">
-                    {hasPendingRequest ? (
-                      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-700">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-blue-600">schedule</span>
-                            <span className="text-sm font-semibold text-blue-800 dark:text-blue-300">Room Change Request Pending</span>
-                          </div>
-                          <span className="text-sm text-blue-700 dark:text-blue-400">
-                            <span className="font-medium">Submitted on:</span> {pendingRequestDate}
-                          </span>
-                        </div>
-                        <p className="text-xs text-blue-600 dark:text-blue-500 mt-2 ml-8">
-                          Your room change request is under review by the admin.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 rounded-lg p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-green-600">check_circle</span>
-                          <span className="text-sm font-semibold text-green-800 dark:text-green-300">Status: Allocated</span>
-                        </div>
-                        <span className="text-sm text-green-700 dark:text-green-400">
-                          <span className="font-medium">Allocated on:</span> {allocatedDate}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-red-600 text-2xl">error</span>
-                    <div>
-                      <p className="text-red-800 dark:text-red-300 font-semibold">No Room Allocated</p>
-                      <p className="text-sm text-red-700 dark:text-red-400 mt-1">
-                        Unable to retrieve room allocation. Please contact the admin office.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </section>
+  {/* Header */}
+  <div className="flex items-center justify-between mb-4">
+    <h2 className="text-sm font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Current Room Allocation</h2>
+    {hasAllocation && (
+      <span className="flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 px-2.5 py-1 rounded-full">
+        <span className="material-symbols-outlined" style={{ fontSize: 13 }}>check_circle</span>
+        Allocated
+      </span>
+    )}
+    {allocationStatus === 'Pending' && (
+      <span className="flex items-center gap-1 text-xs font-semibold text-yellow-600 dark:text-yellow-400 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 px-2.5 py-1 rounded-full">
+        <span className="material-symbols-outlined" style={{ fontSize: 13 }}>schedule</span>
+        Pending
+      </span>
+    )}
+  </div>
 
-            {/* Student Details */}
+  {/* Loading */}
+  {loading ? (
+    <div className="flex items-center justify-center py-10 gap-3">
+      <div className="animate-spin rounded-full h-6 w-6 border-2 border-blue-600 border-t-transparent" />
+      <p className="text-sm text-gray-400">Loading allocation details...</p>
+    </div>
+
+  /* Day Scholar */
+  ) : allocationStatus === 'Not Applicable' ? (
+    <div className="flex items-start gap-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+      <span className="material-symbols-outlined text-blue-500 mt-0.5" style={{ fontSize: 20 }}>info</span>
+      <div>
+        <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Day Scholar</p>
+        <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5 leading-relaxed">
+          You are registered as a Day Scholar. Hostel room allocation is not applicable for you.
+        </p>
+      </div>
+    </div>
+
+  /* Pending */
+  ) : allocationStatus === 'Pending' ? (
+    <div className="flex items-start gap-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+      <span className="material-symbols-outlined text-yellow-500 mt-0.5" style={{ fontSize: 20 }}>schedule</span>
+      <div>
+        <p className="text-sm font-semibold text-yellow-800 dark:text-yellow-300">Room Allocation Pending</p>
+        <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1 leading-relaxed">
+          You have requested a <strong>{preferredRoomType}</strong> room. Your request is awaiting admin review and will be assigned on a First Come First Serve basis.
+        </p>
+      </div>
+    </div>
+
+  /* Allocated */
+  ) : hasAllocation ? (
+    <div className="space-y-4">
+
+      {/* 4 Info Tiles */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wide mb-1">Hostel</p>
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-blue-600 dark:text-blue-400" style={{ fontSize: 16 }}>apartment</span>
+            <p className="text-sm font-bold text-blue-900 dark:text-blue-100 truncate">{hostelName}</p>
+          </div>
+        </div>
+
+        <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wide mb-1">Room</p>
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-green-600 dark:text-green-400" style={{ fontSize: 16 }}>meeting_room</span>
+            <p className="text-sm font-bold text-green-900 dark:text-green-100">{roomNumber}</p>
+          </div>
+        </div>
+
+        <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-purple-500 dark:text-purple-400 uppercase tracking-wide mb-1">Floor</p>
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-purple-600 dark:text-purple-400" style={{ fontSize: 16 }}>layers</span>
+            <p className="text-sm font-bold text-purple-900 dark:text-purple-100">Floor {floorNumber}</p>
+          </div>
+        </div>
+
+        <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-lg px-4 py-3">
+          <p className="text-xs font-semibold text-orange-500 dark:text-orange-400 uppercase tracking-wide mb-1">Type</p>
+          <div className="flex items-center gap-1.5">
+            <span className="material-symbols-outlined text-orange-600 dark:text-orange-400" style={{ fontSize: 16 }}>ac_unit</span>
+            <p className="text-sm font-bold text-orange-900 dark:text-orange-100 truncate">{roomType}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Status Bar */}
+      <div className="border-t border-gray-100 dark:border-gray-800 pt-3">
+        {hasPendingRequest ? (
+          <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-500" style={{ fontSize: 16 }}>schedule</span>
+              <span className="text-xs font-semibold text-blue-800 dark:text-blue-300">Room Change Request Under Review</span>
+            </div>
+            <span className="text-xs text-blue-600 dark:text-blue-400">
+              Submitted: <span className="font-semibold">{pendingRequestDate}</span>
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-green-500" style={{ fontSize: 16 }}>check_circle</span>
+              <span className="text-xs font-semibold text-green-800 dark:text-green-300">Allocation Confirmed</span>
+            </div>
+            <span className="text-xs text-green-600 dark:text-green-400">
+              Allocated on: <span className="font-semibold">{allocatedDate}</span>
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+
+  /* Error */
+  ) : (
+    <div className="flex items-start gap-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+      <span className="material-symbols-outlined text-red-500 mt-0.5" style={{ fontSize: 20 }}>error</span>
+      <div>
+        <p className="text-sm font-semibold text-red-800 dark:text-red-300">No Room Allocated</p>
+        <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">Unable to retrieve room allocation. Please contact the admin office.</p>
+      </div>
+    </div>
+  )}
+
+</section>
+{/* Student Details */}
             <section className="card">
               <h2 className="card-title mb-6">Student Information</h2>
               
@@ -421,5 +440,3 @@ function DetailRow({ icon, label, value, valueClass = '', multiline = false, sta
     </div>
   );
 }
-
-

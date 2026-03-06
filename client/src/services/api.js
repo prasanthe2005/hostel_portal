@@ -41,16 +41,11 @@ export const api = {
           // If JSON parsing fails, use default error message
         }
         
-        // If it's a 401 or 403, might be token issue - clear and redirect
+        // If it's a 401 or 403, might be token issue
         if (response.status === 401 || response.status === 403) {
-          console.error('Authentication error - clearing token and redirecting to login');
-          localStorage.removeItem('token');
-          localStorage.removeItem('userRole');
-          localStorage.removeItem('userData');
-          // Redirect to login after a short delay
-          setTimeout(() => {
-            window.location.href = '/login';
-          }, 1000);
+          console.error('Authentication error:', errorMessage);
+          // Don't auto-redirect here, let components handle it
+          // This prevents redirect loops on initial page load
         }
         
         throw new Error(errorMessage);

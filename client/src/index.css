@@ -51,3 +51,21 @@ body {
 .animate-in {
   animation: fade-in 0.2s ease-out, zoom-in 0.2s ease-out;
 }
+
+/* Navigation links */
+.nav-link {
+  @apply text-gray-600 dark:text-gray-400 text-sm font-medium transition-colors;
+}
+
+/* Button styles */
+.icon-btn {
+  @apply w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors;
+}
+
+.card {
+  @apply bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm;
+}
+
+.card-title {
+  @apply text-xl font-bold text-gray-900 dark:text-white;
+}

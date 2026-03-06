@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { adminService } from '../services/admin.service.js';
 import { studentService } from '../services/student.service.js';
+import { caretakerService } from '../services/caretaker.service.js';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -88,32 +89,82 @@ export default function Login() {
         response = await adminService.login(credentials);
         
         // Verify the response contains admin role
+        if (!response || !response.token || !response.user) {
+          setError('Invalid response from server.');
+          setLoading(false);
+          return;
+        }
+        
         if (response.user.role !== 'admin') {
           setError('Invalid admin credentials.');
           setLoading(false);
           return;
         }
         
+        // Save all auth data before navigation
         localStorage.setItem('token', response.token);
         localStorage.setItem('userRole', 'admin');
         localStorage.setItem('userName', response.user.name);
         localStorage.setItem('userData', JSON.stringify(response.user));
+        
+        // Small delay to ensure localStorage is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
         navigate('/admin/dashboard');
+      } else if (formData.userType === 'staff') {
+        // Staff (Caretaker) login
+        console.log('=== STAFF LOGIN START ===');
+        console.log('Email:', credentials.email);
+        
+        response = await caretakerService.login(credentials.email, credentials.password);
+        
+        console.log('Caretaker login response:', response);
+        
+        // Verify the response
+        if (!response || !response.token || !response.user) {
+          console.error('❌ Invalid response from server:', response);
+          setError('Invalid response from server.');
+          setLoading(false);
+          return;
+        }
+        
+        console.log('✅ Response validated, waiting 300ms before navigation...');
+        console.log('📝 Token saved:', localStorage.getItem('token') ? 'YES' : 'NO');
+        console.log('📝 UserRole saved:', localStorage.getItem('userRole'));
+        
+        // Longer delay to ensure localStorage is fully updated
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        console.log('📝 Verifying localStorage before navigation...');
+        console.log('  - Token exists:', !!localStorage.getItem('token'));
+        console.log('  - UserRole:', localStorage.getItem('userRole'));
+        console.log('  - UserName:', localStorage.getItem('userName'));
+        console.log('✅ Navigating to /caretaker/dashboard');
+        navigate('/caretaker/dashboard');
       } else {
         // Student login
         response = await studentService.login(credentials);
         
         // Verify the response contains student role
+        if (!response || !response.token || !response.user) {
+          setError('Invalid response from server.');
+          setLoading(false);
+          return;
+        }
+        
         if (response.user.role !== 'student') {
           setError('Invalid student credentials.');
           setLoading(false);
           return;
         }
         
+        // Save all auth data before navigation
         localStorage.setItem('token', response.token);
         localStorage.setItem('userRole', 'student');
         localStorage.setItem('userName', response.user.name);
         localStorage.setItem('userData', JSON.stringify(response.user));
+        
+        // Small delay to ensure localStorage is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
         navigate('/student/dashboard');
       }
     } catch (err) {
@@ -127,7 +178,7 @@ export default function Login() {
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen flex items-center justify-center font-display">
       <div className="flex h-screen w-full overflow-hidden flex-col md:flex-row">
         {/* Left Side: Campus Image & Branding */}
-        <div className="hidden md:flex md:w-1/2 lg:w-1/2 bg-blue-600 relative overflow-hidden">
+        <div className="hidden md:flex md:w-1/2 lg:w-3/5 bg-blue-600 relative overflow-hidden">
           <div 
             className="absolute inset-0 bg-cover bg-center" 
             style={{backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuCF3wlPEBDyHRZRSrEUsGO5d4PGe9WT0BrJZrFZizN6NGOcm6Pk1WQq6R283PaDQPNRfqAtqTdWYkHBh5aPe74E0OrNM6WDU7hDb7PT2WbQ2kFvA1NgcmfIfyzUYalEooxcfEeFM-eOXfk-2gEXrnd1jceMR-ewdGo2fBAuilt_8GPSFwznX-UB7RTQWgAf8tQ1f1ULdSufYdYXCyueNlIv7upxq3dqEQh76fPGqX6IaxV4QQO_i8UzSNV0A70Cw1C_C7xErA4QPGM')"}}
@@ -170,50 +221,35 @@ export default function Login() {
         </div>
 
         {/* Right Side: Login Form */}
-        <div className="w-full md:w-1/2 lg:w-1/2 flex flex-col justify-center items-center p-6 lg:p-10 bg-white dark:bg-slate-900 overflow-y-auto">
-          <div className="w-full max-w-[480px]">
+        <div className="w-full md:w-1/2 lg:w-2/5 flex flex-col justify-center items-center p-8 lg:p-16 bg-white dark:bg-slate-900 overflow-y-auto">
+          <div className="w-full max-w-[420px]">
             {/* Mobile Logo */}
-            <div className="md:hidden flex items-center gap-2 mb-8">
+            <div className="md:hidden flex items-center gap-2 mb-10">
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
                 <span className="material-symbols-outlined text-xl">domain</span>
               </div>
               <span className="text-xl font-black tracking-tight text-gray-900 dark:text-white">HostelHub</span>
             </div>
 
-            {/* Header */}
-            <div className="mb-6">
-              <h2 className="text-gray-900 dark:text-white text-2xl font-bold leading-tight mb-1">
-                Login to Your Account
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Access the hostel management portal
-              </p>
+            {/* Role Icon Display */}
+            <div className="flex justify-center mb-6">
+              <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 mb-2 ring-4 ring-blue-50/50 dark:ring-blue-900/10 transition-all duration-300">
+                <span className="material-symbols-outlined text-5xl">
+                  {formData.userType === 'student' ? 'school' : 
+                   formData.userType === 'staff' ? 'assignment_ind' : 
+                   'admin_panel_settings'}
+                </span>
+              </div>
             </div>
 
-            {/* Role Selector */}
-            <div className="flex p-1 bg-slate-100 dark:bg-gray-800 rounded-lg mb-6">
-              <button 
-                type="button"
-                onClick={() => handleUserTypeChange('student')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${
-                  formData.userType === 'student' 
-                    ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' 
-                    : 'text-gray-600 hover:text-blue-600'
-                }`}
-              >
-                Student
-              </button>
-              <button 
-                type="button"
-                onClick={() => handleUserTypeChange('admin')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-md transition-colors ${
-                  formData.userType === 'admin' 
-                    ? 'bg-white dark:bg-gray-700 shadow-sm text-blue-600' 
-                    : 'text-gray-600 hover:text-blue-600'
-                }`}
-              >
-                Administrator
-              </button>
+            {/* Header */}
+            <div className="mb-8 text-center">
+              <h1 className="text-gray-900 dark:text-white text-3xl font-black leading-tight tracking-tight mb-2">
+                Welcome Back
+              </h1>
+              <p className="text-gray-600 dark:text-gray-400 text-base">
+                Access your personalized hostel portal
+              </p>
             </div>
 
             {/* Success Message */}
@@ -280,8 +316,68 @@ export default function Login() {
                 </div>
               </div>
 
+              {/* Role Selector */}
+              <div className="space-y-3 pt-2">
+                <label className="text-gray-900 dark:text-gray-200 text-sm font-semibold leading-normal block">
+                  Select Your Role
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="relative">
+                    <label 
+                      className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:border-blue-500/50 transition-all text-sm font-bold ${
+                        formData.userType === 'student' 
+                          ? 'border-blue-600 bg-blue-600/5 text-blue-600' 
+                          : 'border-gray-300 dark:border-gray-700 text-gray-600'
+                      }`}
+                      onClick={() => handleUserTypeChange('student')}
+                    >
+                      <span className={`w-4 h-4 rounded-full border-2 mb-2 transition-all ${
+                        formData.userType === 'student' 
+                          ? 'border-blue-600 border-[5px]' 
+                          : 'border-gray-300'
+                      }`}></span>
+                      Student
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <label 
+                      className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:border-blue-500/50 transition-all text-sm font-bold ${
+                        formData.userType === 'staff' 
+                          ? 'border-blue-600 bg-blue-600/5 text-blue-600' 
+                          : 'border-gray-300 dark:border-gray-700 text-gray-600'
+                      }`}
+                      onClick={() => handleUserTypeChange('staff')}
+                    >
+                      <span className={`w-4 h-4 rounded-full border-2 mb-2 transition-all ${
+                        formData.userType === 'staff' 
+                          ? 'border-blue-600 border-[5px]' 
+                          : 'border-gray-300'
+                      }`}></span>
+                      Staff
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <label 
+                      className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:border-blue-500/50 transition-all text-sm font-bold ${
+                        formData.userType === 'admin' 
+                          ? 'border-blue-600 bg-blue-600/5 text-blue-600' 
+                          : 'border-gray-300 dark:border-gray-700 text-gray-600'
+                      }`}
+                      onClick={() => handleUserTypeChange('admin')}
+                    >
+                      <span className={`w-4 h-4 rounded-full border-2 mb-2 transition-all ${
+                        formData.userType === 'admin' 
+                          ? 'border-blue-600 border-[5px]' 
+                          : 'border-gray-300'
+                      }`}></span>
+                      Admin
+                    </label>
+                  </div>
+                </div>
+              </div>
+
               {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between py-2">
                 <label className="flex items-center gap-2 cursor-pointer group">
                   <input 
                     className="h-5 w-5 rounded border-gray-300 dark:border-gray-700 bg-transparent text-blue-600 checked:bg-blue-600 checked:border-blue-600 focus:ring-0 focus:ring-offset-0 transition-colors" 
@@ -304,7 +400,7 @@ export default function Login() {
 
               {/* Submit Button */}
               <button 
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-lg font-bold text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50" 
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white h-12 rounded-lg font-bold text-base shadow-lg shadow-blue-600/20 transition-all active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed" 
                 type="submit"
                 disabled={loading}
               >
@@ -313,18 +409,30 @@ export default function Login() {
               </button>
             </form>
 
-            {/* Register Link */}
-            <div className="mt-6 text-center">
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Don't have an account yet? 
-                <Link className="text-blue-600 font-bold hover:underline ml-1" to="/register">
-                  Register Now
-                </Link>
+            {/* Register Link - Only for Students */}
+            <div className="mt-10 pt-6 border-t border-gray-300 dark:border-gray-800 text-center">
+              <p className="text-gray-600 text-sm leading-relaxed">
+                {formData.userType === 'student' ? (
+                  <>
+                    Don't have an account yet? 
+                    <Link className="text-blue-600 font-bold hover:underline ml-1" to="/register">
+                      Register here
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    {formData.userType === 'staff' ? 'Staff credentials are provided by administration' : 'Admin access is restricted'}
+                  </>
+                )}
+                <span className="mx-2">•</span>
+                <a className="text-gray-600 hover:text-blue-600 transition-colors" href="#">
+                  Contact Support
+                </a>
               </p>
             </div>
 
             {/* Footer Links */}
-            <div className="mt-6 flex justify-center gap-6">
+            <div className="mt-8 flex justify-center gap-6">
               <a className="text-gray-500 hover:text-blue-600 transition-colors" href="#" title="Support">
                 <span className="material-symbols-outlined text-xl">help</span>
               </a>

@@ -13,6 +13,7 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
     { path: '/admin/hostels', icon: 'corporate_fare', label: 'Hostels' },
     { path: '/admin/rooms', icon: 'bed', label: 'Rooms' },
     { path: '/admin/students', icon: 'group', label: 'Students' },
+    { path: '/admin/caretakers', icon: 'engineering', label: 'Caretakers' },
     { path: '/admin/room-requests', icon: 'swap_horiz', label: 'Room Requests' },
   ];
 
