@@ -78,8 +78,8 @@ const RequestRoom = () => {
     }
   ];
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    await studentService.logout();
     navigate('/login');
   };
 

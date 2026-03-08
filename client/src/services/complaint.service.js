@@ -1,10 +1,11 @@
 // Complaint Management APIs
+import tabSession from '../utils/tabSession';
 
 export const complaintService = {
   // Submit a new complaint
   submitComplaint: async (complaintData) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tabSession.getToken();
       const response = await fetch('http://localhost:5000/api/complaints/submit', {
         method: 'POST',
         headers: {
@@ -29,12 +30,13 @@ export const complaintService = {
   // Get student's complaints
   getMyComplaints: async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/complaints/my-complaints', {
+      const token = tabSession.getToken();
+      const response = await fetch(`http://localhost:5000/api/complaints/my-complaints?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        cache: 'no-store'
       });
 
       if (!response.ok) {
@@ -51,12 +53,13 @@ export const complaintService = {
   // Get all complaints (admin)
   getAllComplaints: async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/admin/complaints', {
+      const token = tabSession.getToken();
+      const response = await fetch(`http://localhost:5000/api/admin/complaints?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        cache: 'no-store'
       });
 
       if (!response.ok) {
@@ -73,7 +76,7 @@ export const complaintService = {
   // Update complaint status (admin)
   updateComplaintStatus: async (complaintId, status) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tabSession.getToken();
       const response = await fetch(`http://localhost:5000/api/admin/complaints/${complaintId}/status`, {
         method: 'PUT',
         headers: {
@@ -97,23 +100,74 @@ export const complaintService = {
 
   // Student confirms complaint resolution
   confirmResolution: async (complaintId) => {
+    console.log('\n=== CLIENT: Confirm Resolution ===');
+    console.log('Complaint ID:', complaintId);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/complaints/${complaintId}/confirm`, {
+      const token = tabSession.getToken();
+      console.log('Token exists:', !!token);
+      console.log('Token preview:', token ? token.substring(0, 30) + '...' : 'null');
+      
+      const url = `http://localhost:5000/api/complaints/${complaintId}/confirm`;
+      console.log('Request URL:', url);
+      console.log('Request Method: PUT');
+      
+      const response = await fetch(url, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
+      console.log('Response Status:', response.status, response.statusText);
+      
       if (!response.ok) {
         const error = await response.json();
+        console.error('❌ Response Error:', error);
         throw new Error(error.error || 'Failed to confirm resolution');
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log('✅ Response Data:', data);
+      return { success: true, data };
     } catch (error) {
-      console.error('Error confirming resolution:', error);
+      console.error('❌ Error confirming resolution:', error);
+      throw error;
+    }
+  },
+
+  // Student rejects resolution and reopens complaint
+  rejectResolution: async (complaintId) => {
+    console.log('\n=== CLIENT: Reject Resolution ===');
+    console.log('Complaint ID:', complaintId);
+    try {
+      const token = tabSession.getToken();
+      console.log('Token exists:', !!token);
+      console.log('Token preview:', token ? token.substring(0, 30) + '...' : 'null');
+      
+      const url = `http://localhost:5000/api/complaints/${complaintId}/reject`;
+      console.log('Request URL:', url);
+      console.log('Request Method: PUT');
+      
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      console.log('Response Status:', response.status, response.statusText);
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('❌ Response Error:', error);
+        throw new Error(error.error || 'Failed to reject resolution');
+      }
+
+      const data = await response.json();
+      console.log('✅ Response Data:', data);
+      return { success: true, data };
+    } catch (error) {
+      console.error('❌ Error rejecting resolution:', error);
       throw error;
     }
   }

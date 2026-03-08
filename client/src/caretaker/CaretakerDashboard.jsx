@@ -1,19 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { caretakerService } from '../services/caretaker.service';
+import useAutoRefresh from '../hooks/useAutoRefresh';
+import tabSession from '../utils/tabSession';
 
 const STATUS_COLORS = {
   'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
   'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800',
   'Resolved': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200 dark:border-purple-800',
-  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800'
+  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800',
+  'Reopened': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 border-orange-200 dark:border-orange-800'
 };
 
 const STATUS_ICONS = {
   'Pending': 'schedule',
   'In Progress': 'construction',
   'Resolved': 'check_circle',
-  'Completed': 'verified'
+  'Completed': 'verified',
+  'Reopened': 'replay'
 };
 
 export default function CaretakerDashboard() {
@@ -24,16 +28,18 @@ export default function CaretakerDashboard() {
   const [filter, setFilter] = useState('all');
   const [updatingId, setUpdatingId] = useState(null);
 
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
   const fetchDashboard = async () => {
     try {
-      setLoading(true);
+      // Only show loading spinner on initial load
+      if (!dashboardData) setLoading(true);
       console.log('🔄 Fetching caretaker dashboard...');
-      console.log('📦 Token from localStorage:', localStorage.getItem('token')?.substring(0, 30) + '...');
-      console.log('👤 UserRole from localStorage:', localStorage.getItem('userRole'));
+      
+      // Verify token exists before making API call
+      const token = tabSession.getToken();
+      if (!token) {
+        console.error('❌ No authentication token found in session');
+        throw new Error('Authentication token not found. Please login again.');
+      }
       
       const data = await caretakerService.getDashboard();
       console.log('✅ Dashboard data received:', data);
@@ -41,26 +47,38 @@ export default function CaretakerDashboard() {
       setError('');
     } catch (err) {
       console.error('❌ Dashboard fetch error:', err);
-      console.error('❌ Error message:', err.message);
       
       // Show the actual error to the user
-      const errorMsg = err.message || 'Failed to fetch dashboard';
+      const errorMsg = err.message || 'Failed to load dashboard data';
       setError(errorMsg);
       
       // Only redirect on actual authentication errors (401 or 403)
       if (errorMsg.includes('401') || errorMsg.includes('403') || 
-          errorMsg.includes('Unauthorized') || errorMsg.includes('Forbidden')) {
+          errorMsg.includes('Unauthorized') || errorMsg.includes('Forbidden') ||
+          errorMsg.includes('Authentication token not found')) {
         console.warn('⚠️ Authentication error detected - redirecting to login in 3 seconds...');
         setTimeout(() => {
           console.log('🔄 Redirecting to login...');
-          localStorage.clear();
+          // Clear only this tab's session
+          tabSession.clearAuth();
           navigate('/login');
         }, 3000);
       }
     } finally {
-      setLoading(false);
+      if (!dashboardData) setLoading(false);
     }
   };
+
+  // Auto-refresh every 10 seconds (caretaker needs frequent updates)
+  const { refresh, isRefreshing, lastRefreshed, broadcastUpdate } = useAutoRefresh(
+    fetchDashboard,
+    10000, // 10 seconds for caretaker
+    'caretaker-dashboard'
+  );
+
+  useEffect(() => {
+    fetchDashboard();
+  }, []);
 
   const handleStatusChange = async (complaintId, newStatus) => {
     try {
@@ -68,6 +86,8 @@ export default function CaretakerDashboard() {
       await caretakerService.updateComplaintStatus(complaintId, newStatus);
       // Refresh dashboard
       await fetchDashboard();
+      // Notify other tabs about the update
+      broadcastUpdate();
     } catch (err) {
       alert(err.message || 'Failed to update status');
     } finally {
@@ -75,12 +95,8 @@ export default function CaretakerDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('userRole');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('userData');
+  const handleLogout = async () => {
+    await caretakerService.logout();
     navigate('/login');
   };
 
@@ -157,13 +173,6 @@ export default function CaretakerDashboard() {
               {dashboardData?.caretaker.hostel_name || 'All Hostels'}
             </p>
           </div>
-          <button 
-            className="icon-btn" 
-            onClick={fetchDashboard}
-            title="Refresh"
-          >
-            <span className="material-symbols-outlined">refresh</span>
-          </button>
           <button
             onClick={handleLogout}
             className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold text-sm transition-all flex items-center gap-2"
@@ -186,8 +195,26 @@ export default function CaretakerDashboard() {
           </p>
         </div>
 
+        {/* Auto-refresh indicator */}
+        <div className="mb-6 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className={`inline-block w-2 h-2 rounded-full ${isRefreshing ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+            <span>
+              {isRefreshing ? 'Refreshing complaints...' : lastRefreshed ? `Last updated: ${lastRefreshed.toLocaleTimeString()}` : 'Auto-refresh enabled (10s)'}
+            </span>
+          </div>
+          <button
+            onClick={() => refresh('manual')}
+            disabled={isRefreshing}
+            className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 flex items-center gap-1 font-medium"
+          >
+            <span className={`material-symbols-outlined text-sm ${isRefreshing ? 'animate-spin' : ''}`}>refresh</span>
+            Refresh Now
+          </button>
+        </div>
+
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="flex items-center justify-between">
               <div>
@@ -244,14 +271,14 @@ export default function CaretakerDashboard() {
                   {dashboardData?.statistics.completed || 0}
                 </p>
               </div>
-              <span className="material-symbols-outlined text-5xl text-green-500 opacity-30">check_circle</span>
+              <span className="material-symbols-outlined text-5xl text-green-500 opacity-30">verified</span>
             </div>
           </div>
         </div>
 
         {/* Filter Buttons */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {['all', 'Pending', 'In Progress', 'Resolved', 'Completed'].map((status) => (
+          {['all', 'Pending', 'In Progress', 'Reopened', 'Resolved', 'Completed'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -347,7 +374,7 @@ export default function CaretakerDashboard() {
                   </div>
                   
                   <div className="flex gap-2 flex-wrap">
-                    {complaint.status !== 'In Progress' && (
+                    {complaint.status !== 'In Progress' && complaint.status !== 'Completed' && (
                       <button
                         onClick={() => handleStatusChange(complaint.complaint_id, 'In Progress')}
                         disabled={updatingId === complaint.complaint_id}
@@ -395,6 +422,12 @@ export default function CaretakerDashboard() {
                       <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg flex items-center gap-2">
                         <span className="material-symbols-outlined text-green-600">verified</span>
                         <span className="text-sm font-semibold text-green-800 dark:text-green-300">Completed & Confirmed</span>
+                      </div>
+                    )}
+                    {complaint.status === 'Reopened' && (
+                      <div className="px-4 py-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg flex items-center gap-2">
+                        <span className="material-symbols-outlined text-orange-600">replay</span>
+                        <span className="text-sm font-semibold text-orange-800 dark:text-orange-300">Reopened by Student - Needs Attention</span>
                       </div>
                     )}
                   </div>

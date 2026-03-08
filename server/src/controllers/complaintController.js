@@ -64,6 +64,12 @@ export async function getMyComplaints(req, res) {
       [studentId]
     );
 
+    // Prevent caching to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json(complaints);
   } catch (err) {
     console.error('Error fetching complaints:', err);
@@ -102,7 +108,7 @@ export async function updateComplaintStatus(req, res) {
   const { complaint_id } = req.params;
   const { status } = req.body;
 
-  if (!['Pending', 'In Progress', 'Resolved', 'Completed'].includes(status)) {
+  if (!['Pending', 'In Progress', 'Resolved', 'Completed', 'Escalated', 'Reopened'].includes(status)) {
     return res.status(400).json({ error: 'Invalid status' });
   }
 
@@ -136,35 +142,46 @@ export async function updateComplaintStatus(req, res) {
   }
 }
 
-// Student confirms complaint resolution
+// Student confirms complaint resolution (clicks YES - Satisfied)
 export async function confirmResolution(req, res) {
+  console.log('\n=== CONFIRM RESOLUTION REQUEST ===');
   const { complaint_id } = req.params;
   const studentId = req.user.student_id;
+  console.log('Complaint ID:', complaint_id);
+  console.log('Student ID:', studentId);
+  console.log('User from token:', req.user);
 
   const conn = await pool.getConnection();
   try {
+    console.log('Fetching complaint from database...');
     // Verify the complaint belongs to this student
     const [complaints] = await conn.query(
       'SELECT * FROM complaints WHERE complaint_id = ? AND student_id = ?',
       [complaint_id, studentId]
     );
+    console.log('Complaints found:', complaints.length);
 
     if (complaints.length === 0) {
+      console.log('❌ Complaint not found or access denied');
       return res.status(404).json({ error: 'Complaint not found or access denied' });
     }
 
     const complaint = complaints[0];
+    console.log('Current complaint status:', complaint.status);
 
-    // Only allow confirmation if status is "Pending Confirmation"
-    if (complaint.status !== 'Pending Confirmation') {
-      return res.status(400).json({ error: 'Complaint is not awaiting confirmation' });
+    // Only allow confirmation if status is "Resolved"
+    if (complaint.status !== 'Resolved') {
+      console.log('❌ Cannot confirm - status is not Resolved');
+      return res.status(400).json({ error: `Complaint is not in Resolved status. Current status: ${complaint.status}` });
     }
 
+    console.log('✅ Updating status to Completed...');
     // Update status to Completed
     await conn.query(
       'UPDATE complaints SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE complaint_id = ?',
       ['Completed', complaint_id]
     );
+    console.log('✅ Status updated successfully');
 
     const [updatedComplaints] = await conn.query(
       `SELECT c.*, r.room_number, h.hostel_name
@@ -175,9 +192,70 @@ export async function confirmResolution(req, res) {
       [complaint_id]
     );
 
+    console.log('✅ Sending response with updated complaint');
     res.json(updatedComplaints[0]);
   } catch (err) {
-    console.error('Error confirming resolution:', err);
+    console.error('❌ Error confirming resolution:', err);
+    res.status(500).json({ error: err.message });
+  } finally {
+    conn.release();
+  }
+}
+
+// Student rejects resolution (clicks NO - Not Fixed)
+export async function rejectResolution(req, res) {
+  console.log('\n=== REJECT RESOLUTION REQUEST ===');
+  const { complaint_id } = req.params;
+  const studentId = req.user.student_id;
+  console.log('Complaint ID:', complaint_id);
+  console.log('Student ID:', studentId);
+  console.log('User from token:', req.user);
+
+  const conn = await pool.getConnection();
+  try {
+    console.log('Fetching complaint from database...');
+    // Verify the complaint belongs to this student
+    const [complaints] = await conn.query(
+      'SELECT * FROM complaints WHERE complaint_id = ? AND student_id = ?',
+      [complaint_id, studentId]
+    );
+    console.log('Complaints found:', complaints.length);
+
+    if (complaints.length === 0) {
+      console.log('❌ Complaint not found or access denied');
+      return res.status(404).json({ error: 'Complaint not found or access denied' });
+    }
+
+    const complaint = complaints[0];
+    console.log('Current complaint status:', complaint.status);
+
+    // Only allow rejection if status is "Resolved"
+    if (complaint.status !== 'Resolved') {
+      console.log('❌ Cannot reject - status is not Resolved');
+      return res.status(400).json({ error: `Complaint is not in Resolved status. Current status: ${complaint.status}` });
+    }
+
+    console.log('✅ Updating status to Reopened...');
+    // Update status to Reopened
+    await conn.query(
+      'UPDATE complaints SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE complaint_id = ?',
+      ['Reopened', complaint_id]
+    );
+    console.log('✅ Status updated successfully');
+
+    const [updatedComplaints] = await conn.query(
+      `SELECT c.*, r.room_number, h.hostel_name
+       FROM complaints c
+       LEFT JOIN rooms r ON c.room_id = r.room_id
+       LEFT JOIN hostels h ON r.hostel_id = h.hostel_id
+       WHERE c.complaint_id = ?`,
+      [complaint_id]
+    );
+
+    console.log('✅ Sending response with updated complaint');
+    res.json(updatedComplaints[0]);
+  } catch (err) {
+    console.error('❌ Error rejecting resolution:', err);
     res.status(500).json({ error: err.message });
   } finally {
     conn.release();

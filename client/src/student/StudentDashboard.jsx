@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import studentService from '../services/student.service';
+import StudentLayout from '../components/StudentLayout';
+import useAutoRefresh from '../hooks/useAutoRefresh';
 
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
@@ -9,7 +11,8 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
 
   const loadProfile = async () => {
-    setLoading(true);
+    // Only show loading spinner on initial load, not on auto-refresh
+    if (!profile) setLoading(true);
     setError(null);
     try{
       const me = await studentService.getProfile();
@@ -21,18 +24,24 @@ export default function StudentDashboard() {
       setError(errorMsg);
       
       // Only redirect to login if it's a clear authentication error
-      // and not just a network or temporary error
       if (errorMsg.includes('Unauthorized') || errorMsg.includes('Invalid token') || errorMsg.includes('Forbidden')) {
         console.log('Authentication error detected, redirecting to login in 2 seconds...');
         setTimeout(() => {
-          localStorage.clear();
+          // Clear only this tab's session, not all tabs
           navigate('/login');
         }, 2000);
       }
     } finally {
-      setLoading(false);
+      if (!profile) setLoading(false);
     }
   };
+
+  // Auto-refresh every 30 seconds and sync across tabs
+  const { refresh, isRefreshing, lastRefreshed } = useAutoRefresh(
+    loadProfile,
+    30000, // 30 seconds
+    'student-dashboard'
+  );
 
   useEffect(() => {
     loadProfile();
@@ -63,79 +72,72 @@ export default function StudentDashboard() {
   const pendingRequestDate = profile?.pending_request_date ? new Date(profile.pending_request_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
   return (
-    <div className="font-display bg-gray-50 dark:bg-slate-900 text-[#111418] dark:text-gray-100 min-h-screen">
+    <StudentLayout title="Dashboard">
+      <div className="p-8">
 
-      {/* Top Navbar */}
-      <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 md:px-10 py-3 sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 text-blue-500">
-            <span className="material-symbols-outlined text-3xl">apartment</span>
-            <h2 className="text-xl font-bold">HostelPortal</h2>
+        {/* Loading State */}
+        {loading && !profile && (
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <div className="flex-1">
+                <p className="text-blue-800 dark:text-blue-300 font-semibold">Loading your profile...</p>
+                <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+                  Please wait while we fetch your information.
+                </p>
+              </div>
+            </div>
           </div>
+        )}
 
-          <nav className="hidden md:flex items-center gap-6">
-            <a 
-              href="/student/dashboard"
-              className="text-blue-500 text-sm font-semibold border-b-2 border-blue-500 pb-1"
-            >
-              Dashboard
-            </a>
-            <a 
-              href="/student/complaints" 
-              className="nav-link hover:text-blue-500 cursor-pointer transition-colors"
-            >
-              My Complaints
-            </a>
-            <a className="nav-link">Room Service</a>
-            <a className="nav-link">Payments</a>
-            <a className="nav-link">Rules</a>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button 
-            className="icon-btn" 
-            onClick={loadProfile}
-            title="Refresh data"
-          >
-            <span className="material-symbols-outlined">refresh</span>
-          </button>
-          <button className="icon-btn">
-            <span className="material-symbols-outlined">notifications</span>
-          </button>
-          <button className="icon-btn">
-            <span className="material-symbols-outlined">account_circle</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-[1200px] mx-auto px-4 md:px-10 py-8">
-
-        {/* Error Alert */}
+        {/* Error Alert with Retry */}
         {error && (
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
             <div className="flex items-center gap-3">
               <span className="material-symbols-outlined text-red-600 text-2xl">error</span>
               <div className="flex-1">
-                <p className="text-red-800 dark:text-red-300 font-semibold">Authentication Error</p>
+                <p className="text-red-800 dark:text-red-300 font-semibold">Error Loading Data</p>
                 <p className="text-sm text-red-700 dark:text-red-400 mt-1">
                   {error}
-                  {(error.includes('Forbidden') || error.includes('Unauthorized')) && 
-                    ' - Your session has expired or you logged in as the wrong user type. Redirecting to login...'}
                 </p>
+                {!error.includes('Unauthorized') && !error.includes('Invalid token') && (
+                  <p className="text-xs text-red-600 dark:text-red-400 mt-2">
+                    Please make sure the backend server is running on http://localhost:5000
+                  </p>
+                )}
               </div>
-              {!error.includes('Forbidden') && !error.includes('Unauthorized') && (
-                <button 
-                  onClick={loadProfile}
-                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium text-sm transition-colors"
-                >
-                  Retry
-                </button>
-              )}
+              <button
+                onClick={loadProfile}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">refresh</span>
+                Retry
+              </button>
             </div>
           </div>
         )}
+
+        {/* Auto-refresh indicator */}
+        {!loading && !error && profile && (
+          <div className="mb-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className={`inline-block w-2 h-2 rounded-full ${isRefreshing ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              <span>
+                {isRefreshing ? 'Refreshing...' : lastRefreshed ? `Last updated: ${lastRefreshed.toLocaleTimeString()}` : 'Auto-refresh enabled (30s)'}
+              </span>
+            </div>
+            <button
+              onClick={() => refresh('manual')}
+              disabled={isRefreshing}
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 flex items-center gap-1 font-medium"
+            >
+              <span className={`material-symbols-outlined text-sm ${isRefreshing ? 'animate-spin' : ''}`}>refresh</span>
+              Refresh Now
+            </button>
+          </div>
+        )}
+
 
         {/* Profile Card */}
 <section className="bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 px-6 py-4 mb-6">
@@ -396,8 +398,8 @@ export default function StudentDashboard() {
               </div>
             </section>
         </div>
-      </main>
-    </div>
+      </div>
+    </StudentLayout>
   );
 }
 

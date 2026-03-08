@@ -1,6 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { complaintService } from '../../services/complaint.service';
+import StudentLayout from '../../components/StudentLayout';
+import useAutoRefresh from '../../hooks/useAutoRefresh';
+import tabSession from '../../utils/tabSession';
 
 const COMPLAINT_TYPES = [
   'Electrical Issue',
@@ -21,6 +24,9 @@ export default function SubmitComplaint() {
   });
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+
+  // Use the hook just for broadcasting updates (no auto-refresh needed on submit page)
+  const { broadcastUpdate } = useAutoRefresh(() => {}, 0, 'student-complaints');
 
   const handleChange = (e) => {
     setFormData({
@@ -45,6 +51,22 @@ export default function SubmitComplaint() {
       setMessage({ type: 'success', text: 'Complaint submitted successfully! The hostel caretaker has been notified and will resolve it soon.' });
       setFormData({ complaint_type: '', description: '' });
       
+      // Broadcast update to other tabs (both student complaints and caretaker dashboard)
+      broadcastUpdate();
+      
+      // Also create a broadcast for caretaker dashboard with proper role info
+      if (typeof BroadcastChannel !== 'undefined') {
+        const caretakerChannel = new BroadcastChannel('caretaker-dashboard');
+        caretakerChannel.postMessage({ 
+          type: 'data-update', 
+          timestamp: new Date().toISOString(),
+          userRole: 'caretaker', // Target role
+          tabId: tabSession.getTabId(), // Source tab
+          source: 'new-complaint'
+        });
+        caretakerChannel.close();
+      }
+      
       // Redirect to complaints list after 2 seconds
       setTimeout(() => {
         navigate('/student/complaints');
@@ -57,32 +79,8 @@ export default function SubmitComplaint() {
   };
 
   return (
-    <div className="font-display bg-gray-50 dark:bg-slate-900 text-[#111418] dark:text-gray-100 min-h-screen">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 py-3 sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 text-blue-500">
-            <span className="material-symbols-outlined text-3xl">apartment</span>
-            <h2 className="text-lg font-bold">HostelPortal</h2>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <a onClick={() => navigate('/student/dashboard')} className="nav-link cursor-pointer">Dashboard</a>
-            <a className="text-orange-500 font-semibold border-b-2 border-orange-500 pb-1">
-              Submit Complaint
-            </a>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button className="icon-btn" onClick={() => navigate('/student/dashboard')}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-6 py-8">
+    <StudentLayout title="Submit Complaint">
+      <div className="p-8 max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-black mb-2 flex items-center gap-3">
             <span className="material-symbols-outlined text-orange-500 text-4xl">report_problem</span>
@@ -219,7 +217,7 @@ export default function SubmitComplaint() {
             </li>
           </ul>
         </div>
-      </main>
-    </div>
+      </div>
+    </StudentLayout>
   );
 }

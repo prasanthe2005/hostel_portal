@@ -1,4 +1,9 @@
 // Caretaker Management APIs
+import tabSession from '../utils/tabSession.js';
+import { 
+  initializeSession, 
+  clearSession 
+} from '../utils/sessionManager.js';
 
 export const caretakerService = {
   // Caretaker login
@@ -31,13 +36,13 @@ export const caretakerService = {
       console.log('Token received:', data.token ? 'YES (' + data.token.substring(0, 20) + '...)' : 'NO');
       console.log('User data:', data.user);
       
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('userRole', 'caretaker');
-      localStorage.setItem('userName', data.user.name);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('userData', JSON.stringify(data.user));
+      // Store auth in tab session
+      tabSession.setAuth(data.token, 'caretaker', data.user.name, data.user);
       
-      console.log('✅ Data saved to localStorage');
+      // Initialize new session on login
+      initializeSession();
+      console.log('✅ Caretaker session initialized in tab', tabSession.getTabId());
+      
       return data;
     } catch (error) {
       console.error('❌ Error during caretaker login:', error.message);
@@ -45,17 +50,18 @@ export const caretakerService = {
     }
   },
 
-  // Get caretaker dashboard
+  // Get caretaker dashboard (no caching - complaints are dynamic)
   getDashboard: async () => {
     try {
-      const token = localStorage.getItem('token');
-      console.log('Getting dashboard with token:', token?.substring(0, 20) + '...');
+      const token = tabSession.getToken();
+      console.log('🔄 Fetching caretaker dashboard from API');
       
-      const response = await fetch('http://localhost:5000/api/caretaker/dashboard', {
+      const response = await fetch(`http://localhost:5000/api/caretaker/dashboard?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        cache: 'no-store'
       });
 
       console.log('Dashboard response status:', response.status);
@@ -66,31 +72,36 @@ export const caretakerService = {
         throw new Error(errorData.error || `Failed to fetch dashboard (${response.status})`);
       }
 
-      return await response.json();
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Error fetching caretaker dashboard:', error);
+      console.error('❌ Failed to load caretaker dashboard:', error);
       throw error;
     }
   },
 
-  // Get hostel complaints
+  // Get hostel complaints (no caching - complaints are dynamic)
   getComplaints: async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/caretaker/complaints', {
+      const token = tabSession.getToken();
+      console.log('🔄 Fetching complaints from API');
+      
+      const response = await fetch(`http://localhost:5000/api/caretaker/complaints?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
-        }
+        },
+        cache: 'no-store'
       });
 
       if (!response.ok) {
         throw new Error('Failed to fetch complaints');
       }
 
-      return await response.json();
+      const data = await response.json();
+      return data;
     } catch (error) {
-      console.error('Error fetching hostel complaints:', error);
+      console.error('❌ Failed to load complaints:', error);
       throw error;
     }
   },
@@ -98,7 +109,7 @@ export const caretakerService = {
   // Update complaint status
   updateComplaintStatus: async (complaintId, status) => {
     try {
-      const token = localStorage.getItem('token');
+      const token = tabSession.getToken();
       const response = await fetch(`http://localhost:5000/api/caretaker/complaints/${complaintId}/status`, {
         method: 'PUT',
         headers: {
@@ -118,5 +129,14 @@ export const caretakerService = {
       console.error('Error updating complaint status:', error);
       throw error;
     }
+  },
+
+  // Logout
+  logout: async () => {
+    // Clear session data on logout
+    clearSession();
+    tabSession.clearAuth();
+    console.log('✅ Caretaker logged out from tab', tabSession.getTabId());
+    return { success: true };
   }
 };

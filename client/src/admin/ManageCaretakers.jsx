@@ -8,6 +8,7 @@ export default function ManageCaretakers() {
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showCredentials, setShowCredentials] = useState(null);
+  const [expandedCaretaker, setExpandedCaretaker] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -154,41 +155,142 @@ export default function ManageCaretakers() {
               </tr>
             ) : (
               caretakers.map((caretaker) => (
-                <tr key={caretaker.caretaker_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-white">
-                      {caretaker.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
-                      {caretaker.email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
-                      {caretaker.phone || 'N/A'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
-                      {caretaker.hostel_name || 'All Hostels'}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-600 dark:text-gray-300">
-                      {caretaker.resolved_complaints}/{caretaker.total_complaints} resolved
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <button
-                      onClick={() => handleDelete(caretaker.caretaker_id, caretaker.name)}
-                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                    >
-                      Delete
-                    </button>
-                  </td>
-                </tr>
+                <>
+                  <tr key={caretaker.caretaker_id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm font-medium text-gray-900 dark:text-white">
+                        {caretaker.name}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        {caretaker.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        {caretaker.phone || 'N/A'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
+                        {caretaker.hostel_name || 'All Hostels'}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {caretaker.total_complaints} Total
+                        </div>
+                        <button
+                          onClick={() => setExpandedCaretaker(expandedCaretaker === caretaker.caretaker_id ? null : caretaker.caretaker_id)}
+                          className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50"
+                        >
+                          {expandedCaretaker === caretaker.caretaker_id ? 'Hide Details' : 'Show Details'}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      <button
+                        onClick={() => handleDelete(caretaker.caretaker_id, caretaker.name)}
+                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                  
+                  {/* Expanded Details Row */}
+                  {expandedCaretaker === caretaker.caretaker_id && (
+                    <tr className="bg-gray-50 dark:bg-gray-900/50">
+                      <td colSpan="6" className="px-6 py-4">
+                        <div className="space-y-3">
+                          <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            📊 Complaint Statistics for {caretaker.name}
+                          </h4>
+                          
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                            {/* Pending */}
+                            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
+                              <div className="text-xs font-medium text-yellow-700 dark:text-yellow-300 mb-1">
+                                ⏳ Pending
+                              </div>
+                              <div className="text-2xl font-bold text-yellow-800 dark:text-yellow-200">
+                                {caretaker.pending_complaints || 0}
+                              </div>
+                            </div>
+                            
+                            {/* In Progress */}
+                            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+                              <div className="text-xs font-medium text-blue-700 dark:text-blue-300 mb-1">
+                                🔧 In Progress
+                              </div>
+                              <div className="text-2xl font-bold text-blue-800 dark:text-blue-200">
+                                {caretaker.in_progress_complaints || 0}
+                              </div>
+                            </div>
+                            
+                            {/* Resolved */}
+                            <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-3">
+                              <div className="text-xs font-medium text-purple-700 dark:text-purple-300 mb-1">
+                                ✅ Resolved
+                              </div>
+                              <div className="text-2xl font-bold text-purple-800 dark:text-purple-200">
+                                {caretaker.resolved_complaints || 0}
+                              </div>
+                            </div>
+                            
+                            {/* Completed */}
+                            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                              <div className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">
+                                ✔️ Completed
+                              </div>
+                              <div className="text-2xl font-bold text-green-800 dark:text-green-200">
+                                {caretaker.completed_complaints || 0}
+                              </div>
+                            </div>
+                            
+                            {/* Reopened */}
+                            <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-3">
+                              <div className="text-xs font-medium text-orange-700 dark:text-orange-300 mb-1">
+                                🔄 Reopened
+                              </div>
+                              <div className="text-2xl font-bold text-orange-800 dark:text-orange-200">
+                                {caretaker.reopened_complaints || 0}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Performance Summary */}
+                          <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                            <div className="flex items-center gap-4 text-sm">
+                              <div>
+                                <span className="text-gray-600 dark:text-gray-400">Success Rate:</span>
+                                <span className="ml-2 font-semibold text-green-600 dark:text-green-400">
+                                  {caretaker.total_complaints > 0 
+                                    ? ((caretaker.completed_complaints || 0) / caretaker.total_complaints * 100).toFixed(1) 
+                                    : 0}%
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600 dark:text-gray-400">Active:</span>
+                                <span className="ml-2 font-semibold text-blue-600 dark:text-blue-400">
+                                  {(caretaker.pending_complaints || 0) + (caretaker.in_progress_complaints || 0)}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-gray-600 dark:text-gray-400">Needs Attention:</span>
+                                <span className="ml-2 font-semibold text-orange-600 dark:text-orange-400">
+                                  {(caretaker.reopened_complaints || 0)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               ))
             )}
           </tbody>

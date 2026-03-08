@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService } from '../services/admin.service';
+import tabSession from '../utils/tabSession';
 
 const ManageHostels = () => {
   const navigate = useNavigate();
@@ -17,8 +18,8 @@ const ManageHostels = () => {
   // Fetch hostels on component mount
   useEffect(() => {
     // Check if user is logged in as admin
-    const token = localStorage.getItem('token');
-    const userRole = localStorage.getItem('userRole');
+    const token = tabSession.getToken();
+    const userRole = tabSession.getUserRole();
     
     if (!token) {
       alert('Please login first');
@@ -44,9 +45,9 @@ const ManageHostels = () => {
       setHostels(data);
     } catch (error) {
       console.error('Failed to fetch hostels:', error);
-      if (error.message && error.message.includes('Forbidden')) {
+      if (error.message && (error.message.includes('Forbidden') || error.message.includes('Unauthorized'))) {
         alert('Session expired or unauthorized. Please login again.');
-        localStorage.clear();
+        await adminService.logout();
         navigate('/login');
       }
     } finally {

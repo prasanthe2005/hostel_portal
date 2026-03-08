@@ -1,3 +1,5 @@
+import tabSession from '../utils/tabSession';
+
 const API_BASE_URL = 'http://localhost:5000/api';
 
 export const api = {
@@ -16,8 +18,8 @@ export const api = {
         cache: 'no-store',
       };
 
-      // Add auth token if available
-      const token = localStorage.getItem('token');
+      // Add auth token if available (from current tab's session)
+      const token = tabSession.getToken();
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -27,7 +29,14 @@ export const api = {
         config.body = JSON.stringify(data);
       }
 
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+      // Add cache-busting timestamp to GET requests
+      let url = `${API_BASE_URL}${endpoint}`;
+      if (method === 'GET') {
+        const separator = endpoint.includes('?') ? '&' : '?';
+        url = `${url}${separator}t=${Date.now()}`;
+      }
+
+      const response = await fetch(url, config);
       
       if (!response.ok) {
         // Try to extract error message from response body

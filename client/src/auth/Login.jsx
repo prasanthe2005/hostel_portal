@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { adminService } from '../services/admin.service.js';
 import { studentService } from '../services/student.service.js';
 import { caretakerService } from '../services/caretaker.service.js';
+import tabSession from '../utils/tabSession.js';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -48,15 +49,20 @@ export default function Login() {
 
   // Demo mode for testing - bypasses authentication
   const handleDemoLogin = (userType) => {
-    // Set demo credentials in localStorage
-    localStorage.setItem('token', 'demo-token-' + userType);
-    localStorage.setItem('userRole', userType);
-    localStorage.setItem('userName', userType === 'admin' ? 'Admin Demo' : 'Student Demo');
-    localStorage.setItem('userData', JSON.stringify({
-      name: userType === 'admin' ? 'Admin Demo' : 'Student Demo',
-      email: userType === 'admin' ? 'admin@demo.com' : 'student@demo.com',
-      id: userType === 'admin' ? 'admin-001' : 'student-001'
-    }));
+    // Set demo credentials using tab session
+    const demoData = {
+      token: 'demo-token-' + userType,
+      userRole: userType,
+      userName: userType === 'admin' ? 'Admin Demo' : 'Student Demo',
+      userData: {
+        name: userType === 'admin' ? 'Admin Demo' : 'Student Demo',
+        email: userType === 'admin' ? 'admin@demo.com' : 'student@demo.com',
+        id: userType === 'admin' ? 'admin-001' : 'student-001'
+      }
+    };
+    
+    tabSession.setAuth(demoData.token, demoData.userRole, demoData.userName, demoData.userData);
+    console.log(`🎭 Demo login: Tab ${tabSession.getTabId()} logged in as ${userType}`);
     
     // Navigate to appropriate dashboard
     if (userType === 'admin') {
@@ -101,14 +107,10 @@ export default function Login() {
           return;
         }
         
-        // Save all auth data before navigation
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('userRole', 'admin');
-        localStorage.setItem('userName', response.user.name);
-        localStorage.setItem('userData', JSON.stringify(response.user));
+        // Save all auth data using tab session
+        tabSession.setAuth(response.token, 'admin', response.user.name, response.user);
+        console.log(`✅ Admin login: Tab ${tabSession.getTabId()} authenticated`);
         
-        // Small delay to ensure localStorage is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
         navigate('/admin/dashboard');
       } else if (formData.userType === 'staff') {
         // Staff (Caretaker) login
@@ -127,18 +129,10 @@ export default function Login() {
           return;
         }
         
-        console.log('✅ Response validated, waiting 300ms before navigation...');
-        console.log('📝 Token saved:', localStorage.getItem('token') ? 'YES' : 'NO');
-        console.log('📝 UserRole saved:', localStorage.getItem('userRole'));
+        // Save auth data using tab session
+        tabSession.setAuth(response.token, 'caretaker', response.user.name, response.user);
+        console.log(`✅ Caretaker login: Tab ${tabSession.getTabId()} authenticated as ${response.user.name}`);
         
-        // Longer delay to ensure localStorage is fully updated
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        console.log('📝 Verifying localStorage before navigation...');
-        console.log('  - Token exists:', !!localStorage.getItem('token'));
-        console.log('  - UserRole:', localStorage.getItem('userRole'));
-        console.log('  - UserName:', localStorage.getItem('userName'));
-        console.log('✅ Navigating to /caretaker/dashboard');
         navigate('/caretaker/dashboard');
       } else {
         // Student login
@@ -157,14 +151,10 @@ export default function Login() {
           return;
         }
         
-        // Save all auth data before navigation
-        localStorage.setItem('token', response.token);
-        localStorage.setItem('userRole', 'student');
-        localStorage.setItem('userName', response.user.name);
-        localStorage.setItem('userData', JSON.stringify(response.user));
+        // Save all auth data using tab session
+        tabSession.setAuth(response.token, 'student', response.user.name, response.user);
+        console.log(`✅ Student login: Tab ${tabSession.getTabId()} authenticated as ${response.user.name}`);
         
-        // Small delay to ensure localStorage is updated
-        await new Promise(resolve => setTimeout(resolve, 100));
         navigate('/student/dashboard');
       }
     } catch (err) {

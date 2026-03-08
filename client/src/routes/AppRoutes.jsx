@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from '../components/Layout';
 import AdminLayout from '../components/AdminLayout';
+import ProtectedRoute from '../components/ProtectedRoute';
 import Login from '../auth/Login';
 import Register from '../pages/auth/Register';
 import AdminDashboard from '../admin/AdminDashboard';
@@ -15,43 +16,11 @@ import RequestRoom from '../pages/student/RequestRoom';
 import RequestRoomChange from '../student/RequestRoomChange';
 import SubmitComplaint from '../pages/student/SubmitComplaint';
 import MyComplaints from '../pages/student/MyComplaints';
+import HelpSupport from '../pages/student/HelpSupport';
+import HostelRules from '../pages/student/HostelRules';
 import CaretakerDashboard from '../caretaker/CaretakerDashboard';
 
 const AppRoutes = () => {
-  const location = useLocation();
-  const [token, setToken] = useState(localStorage.getItem('token'));
-  const [userRole, setUserRole] = useState(localStorage.getItem('userRole'));
-
-  // Listen for localStorage changes (e.g., after login)
-  useEffect(() => {
-    const checkAuth = () => {
-      const currentToken = localStorage.getItem('token');
-      const currentRole = localStorage.getItem('userRole');
-      setToken(currentToken);
-      setUserRole(currentRole);
-    };
-
-    // Check auth on location change (which happens after navigation)
-    checkAuth();
-
-    // Also listen for storage events from other tabs
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
-  }, [location]);
-
-  // Protected Route Component
-  const ProtectedRoute = ({ children, requiredRole }) => {
-    if (!token) {
-      return <Navigate to="/login" replace />;
-    }
-    
-    if (requiredRole && userRole !== requiredRole) {
-      return <Navigate to="/login" replace />;
-    }
-    
-    return children;
-  };
-
   // Public Route Component (always show login page first)
   const PublicRoute = ({ children }) => {
     // Always show public routes (login/register) regardless of token
@@ -82,55 +51,103 @@ const AppRoutes = () => {
       } />
 
       {/* Caretaker Routes */}
-      <Route path="/caretaker/dashboard" element={<CaretakerDashboard />} />
+      <Route path="/caretaker/dashboard" element={
+        <ProtectedRoute allowedRoles={['caretaker']}>
+          <CaretakerDashboard />
+        </ProtectedRoute>
+      } />
 
-      {/* Admin Routes - Direct Access (No Auth Required) */}
+      {/* Admin Routes */}
       <Route path="/admin/dashboard" element={
-        <AdminLayout title="Dashboard">
-          <AdminDashboard />
-        </AdminLayout>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Dashboard">
+            <AdminDashboard />
+          </AdminLayout>
+        </ProtectedRoute>
       } />
       
       <Route path="/admin/hostels" element={
-        <AdminLayout title="Manage Hostels">
-          <ManageHostels />
-        </AdminLayout>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Manage Hostels">
+            <ManageHostels />
+          </AdminLayout>
+        </ProtectedRoute>
       } />
       
       <Route path="/admin/rooms" element={
-        <AdminLayout title="Manage Rooms">
-          <ManageRooms />
-        </AdminLayout>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Manage Rooms">
+            <ManageRooms />
+          </AdminLayout>
+        </ProtectedRoute>
       } />
       
       <Route path="/admin/room-requests" element={
-        <AdminLayout title="Room Requests">
-          <RoomRequests />
-        </AdminLayout>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Room Requests">
+            <RoomRequests />
+          </AdminLayout>
+        </ProtectedRoute>
       } />
       
       <Route path="/admin/students" element={
-        <AdminLayout title="Manage Students">
-          <ManageStudents />
-        </AdminLayout>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Manage Students">
+            <ManageStudents />
+          </AdminLayout>
+        </ProtectedRoute>
       } />
 
       <Route path="/admin/caretakers" element={
-        <AdminLayout title="Manage Caretakers">
-          <ManageCaretakers />
-        </AdminLayout>
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Manage Caretakers">
+            <ManageCaretakers />
+          </AdminLayout>
+        </ProtectedRoute>
       } />
       
-      {/* Student Routes - Direct Access (No Auth Required) */}
-      <Route path="/student/dashboard" element={<StudentDashboard />} />
+      {/* Student Routes */}
+      <Route path="/student/dashboard" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <StudentDashboard />
+        </ProtectedRoute>
+      } />
       
-      <Route path="/student/request-room" element={<RequestRoom />} />
+      <Route path="/student/request-room" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <RequestRoom />
+        </ProtectedRoute>
+      } />
       
-      <Route path="/student/submit-complaint" element={<SubmitComplaint />} />
+      <Route path="/student/submit-complaint" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <SubmitComplaint />
+        </ProtectedRoute>
+      } />
 
-      <Route path="/student/complaints" element={<MyComplaints />} />
+      <Route path="/student/complaints" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <MyComplaints />
+        </ProtectedRoute>
+      } />
 
-      <Route path="/student/request-room-change" element={<RequestRoomChange />} />
+      <Route path="/student/request-room-change" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <RequestRoomChange />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/student/help" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <HelpSupport />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/student/rules" element={
+        <ProtectedRoute allowedRoles={['student']}>
+          <HostelRules />
+        </ProtectedRoute>
+      } />
 
       {/* Catch all route */}
       <Route path="*" element={<Navigate to="/" replace />} />

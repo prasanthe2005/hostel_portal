@@ -5,7 +5,8 @@ import {
   getMyComplaints, 
   getAllComplaints, 
   updateComplaintStatus,
-  confirmResolution 
+  confirmResolution,
+  rejectResolution 
 } from '../controllers/complaintController.js';
 
 const router = express.Router();
@@ -14,6 +15,7 @@ const router = express.Router();
 router.post('/submit', authMiddleware('student'), submitComplaint);
 router.get('/my-complaints', authMiddleware('student'), getMyComplaints);
 router.put('/:complaint_id/confirm', authMiddleware('student'), confirmResolution);
+router.put('/:complaint_id/reject', authMiddleware('student'), rejectResolution);
 
 // Caretaker routes - require caretaker authentication
 router.put('/:complaint_id/status', authMiddleware('caretaker'), updateComplaintStatus);

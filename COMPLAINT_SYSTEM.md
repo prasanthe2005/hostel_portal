@@ -1,26 +1,74 @@
 # Complaint Management System
 
 ## Overview
-The Hostel Management System now includes a complete complaint management module that allows students to report issues (electrical, plumbing, maintenance, etc.) and caretakers to manage and resolve these complaints.
+The Hostel Management System includes a complete complaint management workflow that allows students to report issues, caretakers to manage and resolve them, and includes a student confirmation system with escalation support.
 
 ## Features
 
 ### For Students:
 - ✅ Submit complaints with type and detailed description
 - ✅ View all their submitted complaints
-- ✅ Track complaint status (Pending → In Progress → Resolved)
-- ✅ Filter complaints by status
+- ✅ Track complaint status through the entire workflow
+- ✅ **Confirm or reject resolution** when caretaker marks issue as resolved
+- ✅ **YES/NO confirmation buttons** for resolved issues
+- ✅ Filter complaints by status (Pending, In Progress, Resolved, Reopened, Escalated, Completed)
 - ✅ Automatic forwarding to hostel caretaker
 
 ### For Caretakers:
 - ✅ Dedicated caretaker login portal
-- ✅ Dashboard with complaint statistics
+- ✅ Dashboard with comprehensive complaint statistics
 - ✅ View all complaints from their assigned hostel
-- ✅ Update complaint status
+- ✅ Update complaint status with multiple options:
+  - **Pending** - Initial state
+  - **In Progress** - Currently working on the issue
+  - **Resolved** - Issue fixed, awaiting student confirmation
+  - **Escalated** - Cannot resolve, escalated to admin
+- ✅ See reopened complaints that need attention
 - ✅ Filter complaints by status
 - ✅ View student contact information
 
-## Database Tables
+### For Admin:
+- ✅ Monitor all complaints across all hostels
+- ✅ View statistics: total, pending, in progress, resolved, completed, escalated
+- ✅ Handle escalated issues that caretakers cannot resolve
+
+## Complete Workflow
+
+### Student Workflow:
+1. **Submit Complaint** → Status: **Pending**
+2. Wait for caretaker to work on it
+3. When status changes to **Resolved**, student sees YES/NO confirmation:
+   - **YES (Satisfied)** → Status: **Completed** ✅
+   - **NO (Not Fixed)** → Status: **Reopened** 🔄
+
+### Caretaker Workflow:
+1. View complaint in dashboard (Status: **Pending**)
+2. Mark as **In Progress** when starting work
+3. Mark as **Resolved** when fixed
+4. OR mark as **Escalated** if cannot resolve
+5. If student clicks NO, issue becomes **Reopened** - work on it again
+
+### Status Flow Diagram:
+```
+Student Submits → Pending
+                    ↓
+        Caretaker → In Progress
+                    ↓
+              Two Options:
+        ┌──────────┴──────────┐
+        ↓                     ↓
+    Resolved              Escalated
+        ↓                (To Admin)
+Student Confirmation
+    ↙       ↘
+   YES       NO
+    ↓         ↓
+Completed  Reopened
+            ↓
+    (Back to Caretaker)
+```
+
+## Database Schema
 
 ### `complaints` table:
 - `complaint_id` (INT, Primary Key)
@@ -28,33 +76,36 @@ The Hostel Management System now includes a complete complaint management module
 - `room_id` (BIGINT, Foreign Key to rooms)
 - `complaint_type` (VARCHAR) - e.g., "Electrical Issue", "Plumbing Issue"
 - `description` (TEXT) - Detailed description of the issue
-- `status` (ENUM: 'Pending', 'In Progress', 'Resolved')
+- `status` (ENUM: **'Pending', 'In Progress', 'Resolved', 'Completed', 'Escalated', 'Reopened'**)
 - `created_at` (TIMESTAMP)
 - `updated_at` (TIMESTAMP)
 
-### `caretakers` table:
-- `caretaker_id` (INT, Primary Key)
-- `name` (VARCHAR)
-- `email` (VARCHAR, Unique)
-- `password` (VARCHAR) - Hashed
-- `phone` (VARCHAR)
-- `hostel_id` (BIGINT, Foreign Key to hostels) - Optional, null = all hostels
-- `created_at` (TIMESTAMP)
+### Status Definitions:
+- **Pending**: Initial state when student submits complaint
+- **In Progress**: Caretaker is actively working on the issue
+- **Resolved**: Caretaker has fixed the issue, awaiting student confirmation
+- **Completed**: Student confirmed the issue is fixed (satisfied)
+- **Escalated**: Caretaker cannot resolve, escalated to admin
+- **Reopened**: Student rejected the resolution (not satisfied), needs rework
 
 ## API Endpoints
 
 ### Student APIs:
 - **POST** `/api/complaints/submit` - Submit a new complaint
 - **GET** `/api/complaints/my-complaints` - Get student's complaints
+- **PUT** `/api/complaints/:complaint_id/confirm` - Confirm resolution (YES - Satisfied)
+- **PUT** `/api/complaints/:complaint_id/reject` - Reject resolution (NO - Not Fixed)
 
 ### Caretaker APIs:
 - **POST** `/api/caretaker/login` - Caretaker login
 - **GET** `/api/caretaker/dashboard` - Get dashboard with statistics
 - **GET** `/api/caretaker/complaints` - Get hostel complaints
-
-### Admin/Caretaker APIs:
-- **GET** `/api/complaints/all` - Get all complaints
 - **PUT** `/api/complaints/:complaint_id/status` - Update complaint status
+  - Valid statuses: 'Pending', 'In Progress', 'Resolved', 'Escalated'
+
+### Admin APIs:
+- **GET** `/api/admin/complaints` - Get all complaints across all hostels
+- **PUT** `/api/admin/complaints/:complaint_id/status` - Update any complaint status
 
 ## Setup Instructions
 

@@ -29,8 +29,8 @@ const StudentDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.clear();
+  const handleLogout = async () => {
+    await studentService.logout();
     navigate('/login');
   };
 

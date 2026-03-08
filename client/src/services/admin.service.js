@@ -1,4 +1,12 @@
 import api from './api.js';
+import tabSession from '../utils/tabSession.js';
+import { 
+  initializeSession, 
+  storeSessionData, 
+  getSessionData, 
+  hasSessionData,
+  clearSession 
+} from '../utils/sessionManager.js';
 
 const FALLBACK_STATS = {
   totalHostels: 0,
@@ -9,18 +17,17 @@ const FALLBACK_STATS = {
 };
 
 export const adminService = {
-  // Login against backend. Stores token and user data in localStorage on success.
+  // Login against backend. Stores token and user data in tab session on success.
   login: async (credentials) => {
     try {
       const res = await api.post('/auth/login', credentials);
       // expected: { token, role, user }
       if (res && res.token) {
-        localStorage.setItem('token', res.token);
-        // Get role from user object
         const role = res.user?.role || 'admin';
-        localStorage.setItem('userRole', role);
-        localStorage.setItem('userData', JSON.stringify(res.user || {}));
-        console.log('Login successful:', { role, user: res.user });
+        tabSession.setAuth(res.token, role, res.user?.name || 'Admin', res.user || {});
+        // Initialize new session on login
+        initializeSession();
+        console.log('✅ Admin session initialized in tab', tabSession.getTabId(), ':', { role, user: res.user });
       }
       return res;
     } catch (err) {
@@ -30,24 +37,55 @@ export const adminService = {
   },
 
   getHostels: async () => {
+    const HOSTELS_KEY = 'admin_hostels';
+    
+    // Check if data already exists in current session
+    if (hasSessionData(HOSTELS_KEY)) {
+      console.log('📦 Returning cached hostels from session');
+      return getSessionData(HOSTELS_KEY);
+    }
+    
+    // First time in this session - fetch from API
     try {
+      console.log('🔄 Fetching hostels from API (first load in session)');
       const res = await api.get('/admin/hostels');
-      return res || [];
+      const hostels = res || [];
+      
+      // Store in session cache
+      storeSessionData(HOSTELS_KEY, hostels);
+      
+      return hostels;
     } catch (err) {
       console.error('Error fetching hostels:', err);
-      return [];
+      throw new Error('Failed to load hostels data. Please re-login to refresh your data.');
     }
   },
 
   getRooms: async () => {
+    const ROOMS_KEY = 'admin_rooms';
+    
+    // Check if data already exists in current session
+    if (hasSessionData(ROOMS_KEY)) {
+      console.log('📦 Returning cached rooms from session');
+      return getSessionData(ROOMS_KEY);
+    }
+    
+    // First time in this session - fetch from API
     try {
+      console.log('🔄 Fetching rooms from API (first load in session)');
       const res = await api.get('/admin/rooms');
-      return res || [];
+      const rooms = res || [];
+      
+      // Store in session cache
+      storeSessionData(ROOMS_KEY, rooms);
+      
+      return rooms;
     } catch (err) {
       console.error('Error fetching rooms:', err);
-      return [];
+      throw new Error('Failed to load rooms data. Please re-login to refresh your data.');
     }
   },
+  
   getPublicRooms: async () => {
     try {
       const res = await api.get('/rooms');
@@ -59,22 +97,52 @@ export const adminService = {
   },
 
   getAllStudents: async () => {
+    const STUDENTS_KEY = 'admin_students';
+    
+    // Check if data already exists in current session
+    if (hasSessionData(STUDENTS_KEY)) {
+      console.log('📦 Returning cached students from session');
+      return getSessionData(STUDENTS_KEY);
+    }
+    
+    // First time in this session - fetch from API
     try {
+      console.log('🔄 Fetching students from API (first load in session)');
       const res = await api.get('/admin/students');
-      return res || [];
+      const students = res || [];
+      
+      // Store in session cache
+      storeSessionData(STUDENTS_KEY, students);
+      
+      return students;
     } catch (err) {
       console.error('Error fetching students from server:', err);
-      return [];
+      throw new Error('Failed to load students data. Please re-login to refresh your data.');
     }
   },
 
   getRoomRequests: async () => {
+    const REQUESTS_KEY = 'admin_requests';
+    
+    // Check if data already exists in current session
+    if (hasSessionData(REQUESTS_KEY)) {
+      console.log('📦 Returning cached room requests from session');
+      return getSessionData(REQUESTS_KEY);
+    }
+    
+    // First time in this session - fetch from API
     try {
+      console.log('🔄 Fetching room requests from API (first load in session)');
       const res = await api.get('/admin/requests');
-      return res || [];
+      const requests = res || [];
+      
+      // Store in session cache
+      storeSessionData(REQUESTS_KEY, requests);
+      
+      return requests;
     } catch (err) {
       console.error('Error fetching room requests:', err);
-      return [];
+      throw new Error('Failed to load room requests data. Please re-login to refresh your data.');
     }
   },
 
@@ -198,11 +266,13 @@ export const adminService = {
   // Logout locally
   logout: async () => {
     try {
-      // Inform server to invalidate session, then clear local data
+      // Clear session data on logout
+      clearSession();
+      tabSession.clearAuth();
+      
+      // Inform server to invalidate session
       try { await api.post('/auth/logout'); } catch (e) { /* ignore */ }
-      localStorage.removeItem('token');
-      localStorage.removeItem('userRole');
-      localStorage.removeItem('userData');
+      console.log('✅ Admin logged out from tab', tabSession.getTabId());
       return { success: true };
     } catch (error) {
       console.error('Logout error:', error);

@@ -8,9 +8,13 @@ const AdminDashboard = () => {
   const [students, setStudents] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function load(){
+      setLoading(true);
+      setError(null);
       try{
         const [h, s, r, reqs] = await Promise.all([
           adminService.getHostels(),
@@ -22,7 +26,13 @@ const AdminDashboard = () => {
         setStudents(s);
         setRooms(r);
         setRequests(reqs);
-      }catch(err){ console.error(err); }
+      }catch(err){ 
+        console.error('Error loading admin dashboard:', err);
+        const errorMsg = err.message || 'Failed to load dashboard data';
+        setError(errorMsg);
+      } finally {
+        setLoading(false);
+      }
     }
     load();
   }, []);
@@ -40,8 +50,25 @@ const AdminDashboard = () => {
     <div className="p-8 space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard Overview</h2>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">Welcome back — data loaded from the server.</p>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
+          Welcome back — {loading ? 'loading data...' : 'data loaded from current session.'}
+        </p>
       </div>
+
+      {/* Error Alert */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-red-600 text-2xl">error</span>
+            <div className="flex-1">
+              <p className="text-red-800 dark:text-red-300 font-semibold">Error Loading Data</p>
+              <p className="text-sm text-red-700 dark:text-red-400 mt-1">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <div onClick={() => navigate('/admin/hostels')} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm cursor-pointer hover:shadow-md transition-shadow">

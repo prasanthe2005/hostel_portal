@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import adminService from '../services/admin.service';
 import studentService from '../services/student.service';
+import StudentLayout from '../components/StudentLayout';
 
 export default function RequestRoomChange() {
   const [rooms, setRooms] = useState([]);
@@ -103,40 +104,8 @@ export default function RequestRoomChange() {
   };
 
   return (
-    <div className="bg-gray-50 dark:bg-slate-900 text-[#111418] dark:text-gray-100 min-h-screen flex flex-col">
-
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-slate-900 px-6 py-3 sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 text-blue-500">
-            <span className="material-symbols-outlined text-3xl">apartment</span>
-            <h2 className="text-lg font-bold">HostelPortal</h2>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <a onClick={() => navigate('/student/dashboard')} className="nav-link cursor-pointer">Dashboard</a>
-            <a className="text-blue-500 font-semibold border-b-2 border-blue-500 pb-1">
-              {profile?.room_number ? 'Room Change' : 'Room Request'}
-            </a>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button 
-            className="icon-btn" 
-            onClick={loadData}
-            title="Refresh data"
-          >
-            <span className="material-symbols-outlined">refresh</span>
-          </button>
-          <button className="icon-btn" onClick={() => navigate('/student/dashboard')}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main */}
-      <main className="flex-1 max-w-[1200px] mx-auto w-full p-6 md:p-10">
+    <StudentLayout title={profile?.room_number ? 'Room Change Request' : 'Room Request'}>
+      <div className="p-8 max-w-[1200px] mx-auto">
         <div className="mb-8">
           <h1 className="text-3xl font-black mb-2">
             {profile?.room_number ? 'Room Change Request' : 'Room Request'}
@@ -155,11 +124,29 @@ export default function RequestRoomChange() {
               ? 'bg-green-50 border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-300'
               : 'bg-red-50 border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300'
           }`}>
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-2xl">
                 {message.type === 'success' ? 'check_circle' : 'error'}
               </span>
-              <p className="font-medium">{message.text}</p>
+              <div className="flex-1">
+                <p className="font-semibold">{message.type === 'error' ? 'Error' : 'Success'}</p>
+                <p className="text-sm mt-1">{message.text}</p>
+                {message.type === 'error' && message.text.includes('Failed to load data') && (
+                  <p className="text-xs mt-2 opacity-80">
+                    Please make sure the backend server is running on http://localhost:5000
+                  </p>
+                )}
+              </div>
+              {message.type === 'error' && message.text.includes('Failed to load data') && (
+                <button
+                  onClick={loadData}
+                  disabled={dataLoading}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <span className="material-symbols-outlined text-lg">refresh</span>
+                  Retry
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -430,15 +417,8 @@ export default function RequestRoomChange() {
             </div>
           )}
         </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="py-6 border-t border-gray-200 dark:border-gray-800 text-center">
-        <p className="text-xs text-gray-500">
-          © 2024 Hostel Management Portal
-        </p>
-      </footer>
-    </div>
+      </div>
+    </StudentLayout>
   );
 }
 

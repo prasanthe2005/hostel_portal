@@ -55,7 +55,7 @@ export async function createCaretaker(req, res) {
   }
 }
 
-// Get all caretakers
+// Get all caretakers with detailed complaint statistics
 export async function listCaretakers(req, res) {
   const conn = await pool.getConnection();
   try {
@@ -63,7 +63,11 @@ export async function listCaretakers(req, res) {
       `SELECT c.caretaker_id, c.name, c.email, c.phone, c.hostel_id, c.created_at,
               h.hostel_name,
               COUNT(comp.complaint_id) as total_complaints,
-              SUM(CASE WHEN comp.status = 'Resolved' THEN 1 ELSE 0 END) as resolved_complaints
+              SUM(CASE WHEN comp.status = 'Pending' THEN 1 ELSE 0 END) as pending_complaints,
+              SUM(CASE WHEN comp.status = 'In Progress' THEN 1 ELSE 0 END) as in_progress_complaints,
+              SUM(CASE WHEN comp.status = 'Resolved' THEN 1 ELSE 0 END) as resolved_complaints,
+              SUM(CASE WHEN comp.status = 'Completed' THEN 1 ELSE 0 END) as completed_complaints,
+              SUM(CASE WHEN comp.status = 'Reopened' THEN 1 ELSE 0 END) as reopened_complaints
        FROM caretakers c
        LEFT JOIN hostels h ON c.hostel_id = h.hostel_id
        LEFT JOIN rooms r ON h.hostel_id = r.hostel_id
@@ -71,6 +75,11 @@ export async function listCaretakers(req, res) {
        GROUP BY c.caretaker_id
        ORDER BY c.created_at DESC`
     );
+
+    // Set cache control headers to prevent caching
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
 
     res.json(caretakers);
   } catch (err) {

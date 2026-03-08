@@ -124,14 +124,21 @@ export async function getCaretakerDashboard(req, res) {
         COUNT(*) as total_complaints,
         SUM(CASE WHEN status = 'Pending' THEN 1 ELSE 0 END) as pending,
         SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
-      SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved,
-        SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed
+        SUM(CASE WHEN status = 'Resolved' THEN 1 ELSE 0 END) as resolved,
+        SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status = 'Reopened' THEN 1 ELSE 0 END) as reopened
        FROM complaints c
        JOIN rooms r ON c.room_id = r.room_id
        ${hostelId ? 'WHERE r.hostel_id = ?' : ''}`,
       hostelId ? [hostelId] : []
     );
 
+    // Prevent caching to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json({
       caretaker: caretaker[0],
       complaints,
@@ -176,6 +183,12 @@ export async function getHostelComplaints(req, res) {
       hostelId ? [hostelId] : []
     );
 
+    // Prevent caching to ensure fresh data
+    res.set({
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.json(complaints);
   } catch (err) {
     console.error('Error fetching hostel complaints:', err);

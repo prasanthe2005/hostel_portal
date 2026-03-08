@@ -1,19 +1,24 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { complaintService } from '../../services/complaint.service';
+import StudentLayout from '../../components/StudentLayout';
+import useAutoRefresh from '../../hooks/useAutoRefresh';
+import tabSession from '../../utils/tabSession';
 
 const STATUS_COLORS = {
   'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
   'In Progress': 'bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 border-blue-200 dark:border-blue-800',
   'Resolved': 'bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400 border-purple-200 dark:border-purple-800',
-  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800'
+  'Completed': 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400 border-green-200 dark:border-green-800',
+  'Reopened': 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400 border-orange-200 dark:border-orange-800'
 };
 
 const STATUS_ICONS = {
   'Pending': 'schedule',
   'In Progress': 'construction',
   'Resolved': 'check_circle',
-  'Completed': 'verified'
+  'Completed': 'verified',
+  'Reopened': 'replay'
 };
 
 export default function MyComplaints() {
@@ -23,36 +28,110 @@ export default function MyComplaints() {
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
   const [confirmingId, setConfirmingId] = useState(null);
+  const [rejectingId, setRejectingId] = useState(null);
+
+  const fetchComplaints = async () => {
+    try {
+      // Only show loading spinner on initial load
+      if (complaints.length === 0) setLoading(true);
+      const data = await complaintService.getMyComplaints();
+      setComplaints(data);
+      setError(''); // Clear errors on success
+    } catch (err) {
+      setError(err.message || 'Failed to fetch complaints');
+    } finally {
+      if (complaints.length === 0) setLoading(false);
+    }
+  };
+
+  // Auto-refresh every 15 seconds (complaints change frequently)
+  const { refresh, isRefreshing, lastRefreshed, broadcastUpdate } = useAutoRefresh(
+    fetchComplaints,
+    15000, // 15 seconds for complaints
+    'student-complaints'
+  );
 
   useEffect(() => {
     fetchComplaints();
   }, []);
 
-  const fetchComplaints = async () => {
-    try {
-      setLoading(true);
-      const data = await complaintService.getMyComplaints();
-      setComplaints(data);
-    } catch (err) {
-      setError(err.message || 'Failed to fetch complaints');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleConfirmResolution = async (complaintId) => {
+    console.log('\n=== STUDENT: Confirming Resolution ===');
+    console.log('Complaint ID:', complaintId);
     try {
       setConfirmingId(complaintId);
+      setError(''); // Clear any previous errors
+      
       const result = await complaintService.confirmResolution(complaintId);
+      console.log('Service returned:', result);
+      
       if (result.success) {
+        console.log('✅ Confirmation successful, refreshing complaints...');
         await fetchComplaints();
+        // Notify other student tabs about the update
+        broadcastUpdate();
+        
+        // Also notify caretaker tabs (complaint status changed)
+        if (typeof BroadcastChannel !== 'undefined') {
+          const caretakerChannel = new BroadcastChannel('caretaker-dashboard');
+          caretakerChannel.postMessage({ 
+            type: 'data-update', 
+            timestamp: new Date().toISOString(),
+            userRole: 'caretaker', // Target role
+            tabId: tabSession.getTabId(), // Source tab
+            source: 'student-confirm'
+          });
+          caretakerChannel.close();
+        }
       } else {
+        console.error('❌ Confirmation failed:', result.error);
         setError(result.error || 'Failed to confirm resolution');
       }
     } catch (err) {
+      console.error('❌ Exception during confirmation:', err);
       setError(err.message || 'Failed to confirm resolution');
     } finally {
       setConfirmingId(null);
+    }
+  };
+
+  const handleRejectResolution = async (complaintId) => {
+    console.log('\n=== STUDENT: Rejecting Resolution ===');
+    console.log('Complaint ID:', complaintId);
+    try {
+      setRejectingId(complaintId);
+      setError(''); // Clear any previous errors
+      
+      const result = await complaintService.rejectResolution(complaintId);
+      console.log('Service returned:', result);
+      
+      if (result.success) {
+        console.log('✅ Rejection successful, refreshing complaints...');
+        await fetchComplaints();
+        // Notify other student tabs about the update
+        broadcastUpdate();
+        
+        // Also notify caretaker tabs (complaint status changed)
+        if (typeof BroadcastChannel !== 'undefined') {
+          const caretakerChannel = new BroadcastChannel('caretaker-dashboard');
+          caretakerChannel.postMessage({ 
+            type: 'data-update', 
+            timestamp: new Date().toISOString(),
+            userRole: 'caretaker', // Target role
+            tabId: tabSession.getTabId(), // Source tab
+            source: 'student-reject'
+          });
+          caretakerChannel.close();
+        }
+      } else {
+        console.error('❌ Rejection failed:', result.error);
+        setError(result.error || 'Failed to reject resolution');
+      }
+    } catch (err) {
+      console.error('❌ Exception during rejection:', err);
+      setError(err.message || 'Failed to reject resolution');
+    } finally {
+      setRejectingId(null);
     }
   };
 
@@ -83,39 +162,8 @@ export default function MyComplaints() {
   }
 
   return (
-    <div className="font-display bg-gray-50 dark:bg-slate-900 text-[#111418] dark:text-gray-100 min-h-screen">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-6 py-3 sticky top-0 z-50">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-3 text-blue-500">
-            <span className="material-symbols-outlined text-3xl">apartment</span>
-            <h2 className="text-lg font-bold">HostelPortal</h2>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <a onClick={() => navigate('/student/dashboard')} className="nav-link cursor-pointer">Dashboard</a>
-            <a className="text-blue-500 font-semibold border-b-2 border-blue-500 pb-1">
-              My Complaints
-            </a>
-          </nav>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <button 
-            className="icon-btn" 
-            onClick={fetchComplaints}
-            title="Refresh"
-          >
-            <span className="material-symbols-outlined">refresh</span>
-          </button>
-          <button className="icon-btn" onClick={() => navigate('/student/dashboard')}>
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-6 py-8">
+    <StudentLayout title="My Complaints">
+      <div className="p-8 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
           <div>
             <h1 className="text-3xl font-black mb-2 flex items-center gap-3">
@@ -136,15 +184,53 @@ export default function MyComplaints() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300 flex items-center gap-3">
-            <span className="material-symbols-outlined text-2xl">error</span>
-            <p className="font-medium">{error}</p>
+          <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-300">
+            <div className="flex items-center gap-3">
+              <span className="material-symbols-outlined text-2xl">error</span>
+              <div className="flex-1">
+                <p className="font-semibold">Error Loading Complaints</p>
+                <p className="text-sm mt-1">{error}</p>
+                {!error.includes('Unauthorized') && !error.includes('Invalid token') && (
+                  <p className="text-xs mt-2 opacity-80">
+                    Please make sure the backend server is running on http://localhost:5000
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={fetchComplaints}
+                disabled={loading}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+              >
+                <span className="material-symbols-outlined text-lg">refresh</span>
+                Retry
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Auto-refresh indicator */}
+        {!loading && !error && (
+          <div className="mb-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+            <div className="flex items-center gap-2">
+              <span className={`inline-block w-2 h-2 rounded-full ${isRefreshing ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></span>
+              <span>
+                {isRefreshing ? 'Refreshing...' : lastRefreshed ? `Last updated: ${lastRefreshed.toLocaleTimeString()}` : 'Auto-refresh enabled (15s)'}
+              </span>
+            </div>
+            <button
+              onClick={() => refresh('manual')}
+              disabled={isRefreshing}
+              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 disabled:text-gray-400 flex items-center gap-1 font-medium"
+            >
+              <span className={`material-symbols-outlined text-sm ${isRefreshing ? 'animate-spin' : ''}`}>refresh</span>
+              Refresh Now
+            </button>
           </div>
         )}
 
         {/* Filter buttons */}
         <div className="flex gap-2 mb-6 flex-wrap">
-          {['all', 'Pending', 'In Progress', 'Resolved', 'Completed'].map((status) => (
+          {['all', 'Pending', 'In Progress', 'Resolved', 'Reopened', 'Completed'].map((status) => (
             <button
               key={status}
               onClick={() => setFilter(status)}
@@ -202,7 +288,7 @@ export default function MyComplaints() {
                   {complaints.filter(c => c.status === 'Completed').length}
                 </p>
               </div>
-              <span className="material-symbols-outlined text-5xl text-green-500 opacity-30">check_circle</span>
+              <span className="material-symbols-outlined text-5xl text-green-500 opacity-30">verified</span>
             </div>
           </div>
         </div>
@@ -275,15 +361,15 @@ export default function MyComplaints() {
                 
                 {complaint.status === 'Resolved' && (
                   <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <p className="text-sm text-purple-800 dark:text-purple-300 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-base">info</span>
-                        <strong>Caretaker Has Resolved This Issue</strong> - Please confirm if the problem is truly fixed.
-                      </p>
+                    <p className="text-sm text-purple-800 dark:text-purple-300 mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">info</span>
+                      <strong>Caretaker Has Resolved This Issue</strong> - Please confirm if the problem is truly fixed.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
                       <button
                         onClick={() => handleConfirmResolution(complaint.complaint_id)}
-                        disabled={confirmingId === complaint.complaint_id}
-                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-semibold transition-all flex items-center gap-2 shrink-0"
+                        disabled={confirmingId === complaint.complaint_id || rejectingId === complaint.complaint_id}
+                        className="flex-1 px-4 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
                       >
                         {confirmingId === complaint.complaint_id ? (
                           <>
@@ -292,8 +378,25 @@ export default function MyComplaints() {
                           </>
                         ) : (
                           <>
-                            <span className="material-symbols-outlined text-base">verified</span>
-                            Mark as Completed
+                            <span className="material-symbols-outlined text-base">check_circle</span>
+                            YES - Issue Fixed (Satisfied)
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleRejectResolution(complaint.complaint_id)}
+                        disabled={confirmingId === complaint.complaint_id || rejectingId === complaint.complaint_id}
+                        className="flex-1 px-4 py-3 bg-orange-600 hover:bg-orange-700 disabled:bg-orange-400 text-white rounded-lg font-semibold transition-all flex items-center justify-center gap-2"
+                      >
+                        {rejectingId === complaint.complaint_id ? (
+                          <>
+                            <span className="material-symbols-outlined text-base animate-spin">progress_activity</span>
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <span className="material-symbols-outlined text-base">cancel</span>
+                            NO - Not Fixed (Reopen)
                           </>
                         )}
                       </button>
@@ -309,11 +412,20 @@ export default function MyComplaints() {
                     </p>
                   </div>
                 )}
+                
+                {complaint.status === 'Reopened' && (
+                  <div className="mt-4 p-3 bg-orange-50 dark:bg-orange-900/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <p className="text-sm text-orange-800 dark:text-orange-300 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base">replay</span>
+                      <strong>Issue Reopened</strong> - The issue was not fixed properly. Caretaker has been notified to address it again.
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         )}
-      </main>
-    </div>
+      </div>
+    </StudentLayout>
   );
 }
