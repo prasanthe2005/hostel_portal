@@ -26,6 +26,20 @@ const AdminDashboard = () => {
         setStudents(s);
         setRooms(r);
         setRequests(reqs);
+        
+        // Debug logging
+        console.log('📊 Admin Dashboard Data:');
+        console.log('Hostels:', h.length);
+        console.log('Students:', s.length);
+        console.log('Rooms:', r.length);
+        console.log('Sample room data:', r.slice(0, 3));
+        console.log('Room types:', {
+          AC: r.filter(room => room.type === 'AC').length,
+          'Non-AC': r.filter(room => room.type === 'Non-AC').length
+        });
+        console.log('Total allocated beds:', r.reduce((acc, x) => acc + (x.assigned || 0), 0));
+        console.log('Available rooms (with space):', r.filter(room => (room.assigned || 0) < (room.capacity || 0)).length);
+        console.log('Fully occupied rooms:', r.filter(room => (room.assigned || 0) >= (room.capacity || 0)).length);
       }catch(err){ 
         console.error('Error loading admin dashboard:', err);
         const errorMsg = err.message || 'Failed to load dashboard data';
@@ -41,10 +55,25 @@ const AdminDashboard = () => {
   const totalStudents = students.length;
   const allocated = rooms.reduce((acc, x) => acc + (x.assigned || 0), 0);
   const totalCapacity = rooms.reduce((acc, x) => acc + (x.capacity || 0), 0);
-  const availableRooms = totalCapacity - allocated;
+  
+  // Debug: log calculation
+  console.log('📊 Dashboard Calculations:');
+  console.log('  Total students:', totalStudents);
+  console.log('  Allocated beds (sum of room.assigned):', allocated);
+  console.log('  Rooms data sample:', rooms.slice(0, 5).map(r => ({
+    room: r.room_number,
+    capacity: r.capacity,
+    assigned: r.assigned
+  })));
+  
+  // Available rooms = rooms with space (not fully occupied)
+  const availableRooms = rooms.filter(r => (r.assigned || 0) < (r.capacity || 0)).length;
+  
   const acRooms = rooms.filter(r => r.type === 'AC').length;
   const nonAcRooms = rooms.filter(r => r.type === 'Non-AC').length;
-  const occupiedRooms = rooms.filter(r => r.status === 'occupied').length;
+  
+  // Occupied rooms = rooms that are fully occupied (assigned >= capacity)
+  const occupiedRooms = rooms.filter(r => (r.assigned || 0) >= (r.capacity || 0)).length;
 
   return (
     <div className="p-8 space-y-8">

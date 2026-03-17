@@ -36,11 +36,11 @@ const ManageHostels = () => {
     fetchHostels();
   }, [navigate]);
 
-  const fetchHostels = async () => {
+  const fetchHostels = async (forceRefresh = false) => {
     try {
       setLoading(true);
       console.log('Fetching hostels...');
-      const data = await adminService.getHostels();
+      const data = await adminService.getHostels(forceRefresh);
       console.log('Hostels fetched:', data);
       setHostels(data);
     } catch (error) {
@@ -63,7 +63,8 @@ const ManageHostels = () => {
     try {
       await adminService.deleteHostel(hostelId);
       alert('Hostel deleted successfully!');
-      fetchHostels();
+      // Force refresh to get fresh data
+      await fetchHostels(true);
     } catch (error) {
       console.error('Failed to delete hostel:', error);
       alert(error.message || 'Failed to delete hostel. Please ensure no students are allocated.');
@@ -105,8 +106,8 @@ const ManageHostels = () => {
       
       await adminService.createHostel(payload);
       
-      // Refresh hostels list
-      await fetchHostels();
+      // Refresh hostels list with force refresh to get latest data
+      await fetchHostels(true);
       
       // Reset form and close modal
       setHostelName('');

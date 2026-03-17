@@ -4,7 +4,6 @@ import { dashboard, requestRoomChange } from '../controllers/studentController.j
 const router = express.Router();
 
 router.use(authMiddleware('student'));
-
 router.get('/dashboard', dashboard);
 router.post('/request', requestRoomChange);
 

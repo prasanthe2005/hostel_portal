@@ -1,0 +1,877 @@
+{
+  "info": {
+    "name": "Hostel Management System API",
+    "description": "Complete API collection for Hostel Management System with JWT authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:4000",
+      "type": "string"
+    },
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "student_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "caretaker_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔓 Public Endpoints",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Get Public Rooms",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "rooms"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Student Registration",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.token) {",
+                  "  pm.environment.set(\"student_token\", response.token);",
+                  "  console.log(\"Student token saved:\", response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"roll_number\": \"CS2024001\",\n  \"year\": 2,\n  \"department\": \"Computer Science\",\n  \"address\": \"123 Main St\",\n  \"phone\": \"1234567890\",\n  \"parent_contact\": \"9876543210\",\n  \"gender\": \"Male\",\n  \"residence_type\": \"Hosteller\",\n  \"preferred_room_type\": \"AC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login (Admin/Student)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.token && response.user) {",
+                  "  if (response.user.role === 'admin') {",
+                  "    pm.environment.set(\"admin_token\", response.token);",
+                  "    console.log(\"Admin token saved:\", response.token);",
+                  "  } else if (response.user.role === 'student') {",
+                  "    pm.environment.set(\"student_token\", response.token);",
+                  "    console.log(\"Student token saved:\", response.token);",
+                  "  }",
+                  "  pm.environment.set(\"user_name\", response.user.name);",
+                  "  pm.environment.set(\"user_role\", response.user.role);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Caretaker Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const response = pm.response.json();",
+                  "if (response.token) {",
+                  "  pm.environment.set(\"caretaker_token\", response.token);",
+                  "  console.log(\"Caretaker token saved:\", response.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"caretaker@example.com\",\n  \"password\": \"care123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/caretaker/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "caretaker", "login"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Hostel Management",
+      "item": [
+        {
+          "name": "Create Hostel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hostel A\",\n  \"location\": \"North Campus\",\n  \"capacity\": 100\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/hostels",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "hostels"]
+            }
+          }
+        },
+        {
+          "name": "List All Hostels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/hostels",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "hostels"]
+            }
+          }
+        },
+        {
+          "name": "Update Hostel",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Hostel A (Updated)\",\n  \"location\": \"North Campus\",\n  \"capacity\": 120\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/hostels/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "hostels", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Hostel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/hostels/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "hostels", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Room Management",
+      "item": [
+        {
+          "name": "Create Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"hostel_id\": 1,\n  \"room_number\": \"101\",\n  \"capacity\": 2,\n  \"room_type\": \"AC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "List All Rooms",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/rooms",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rooms"]
+            }
+          }
+        },
+        {
+          "name": "Update Room",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"room_number\": \"102\",\n  \"capacity\": 3,\n  \"room_type\": \"Non-AC\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/rooms/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rooms", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Room",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/rooms/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "rooms", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Student Management",
+      "item": [
+        {
+          "name": "List All Students",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/students",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "students"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Room Allocation",
+      "item": [
+        {
+          "name": "Allocate Rooms (FCFS)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/allocate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "allocate"]
+            }
+          }
+        },
+        {
+          "name": "Allocate Room to Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": 1,\n  \"room_id\": 5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/allocate-student",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "allocate-student"]
+            }
+          }
+        },
+        {
+          "name": "Deallocate Room",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"student_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/deallocate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "deallocate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Room Change Requests",
+      "item": [
+        {
+          "name": "List Room Change Requests",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/requests",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "requests"]
+            }
+          }
+        },
+        {
+          "name": "Approve Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"approve\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/requests/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "requests", "1"]
+            }
+          }
+        },
+        {
+          "name": "Reject Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"reject\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/requests/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "requests", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Caretaker Management",
+      "item": [
+        {
+          "name": "Create Caretaker",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Caretaker Name\",\n  \"email\": \"caretaker@example.com\",\n  \"password\": \"password123\",\n  \"phone\": \"1234567890\",\n  \"hostel_id\": 1\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/caretakers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "caretakers"]
+            }
+          }
+        },
+        {
+          "name": "List All Caretakers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/caretakers",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "caretakers"]
+            }
+          }
+        },
+        {
+          "name": "Update Caretaker",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"newemail@example.com\",\n  \"phone\": \"9876543210\",\n  \"hostel_id\": 2\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/caretakers/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "caretakers", "1"]
+            }
+          }
+        },
+        {
+          "name": "Delete Caretaker",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/caretakers/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "caretakers", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin - Complaints",
+      "item": [
+        {
+          "name": "Get All Complaints",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/complaints",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "complaints"]
+            }
+          }
+        },
+        {
+          "name": "Get Complaints Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/admin/complaints/stats",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "complaints", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Update Complaint Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"notes\": \"Working on it\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/admin/complaints/1/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "admin", "complaints", "1", "status"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🎓 Student",
+      "item": [
+        {
+          "name": "Get Student Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/student/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "student", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Request Room Change",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"to_room_id\": 5,\n  \"reason\": \"Health issues - need ground floor\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/student/request",
+              "host": ["{{base_url}}"],
+              "path": ["api", "student", "request"]
+            }
+          }
+        },
+        {
+          "name": "Submit Complaint",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"category\": \"Maintenance\",\n  \"description\": \"AC not working in room 101\",\n  \"priority\": \"high\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/complaints/submit",
+              "host": ["{{base_url}}"],
+              "path": ["api", "complaints", "submit"]
+            }
+          }
+        },
+        {
+          "name": "Get My Complaints",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/complaints/my-complaints",
+              "host": ["{{base_url}}"],
+              "path": ["api", "complaints", "my-complaints"]
+            }
+          }
+        },
+        {
+          "name": "Confirm Resolution",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"feedback\": \"Issue resolved, thank you!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/complaints/1/confirm",
+              "host": ["{{base_url}}"],
+              "path": ["api", "complaints", "1", "confirm"]
+            }
+          }
+        },
+        {
+          "name": "Reject Resolution",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{student_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"Issue still persists\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/complaints/1/reject",
+              "host": ["{{base_url}}"],
+              "path": ["api", "complaints", "1", "reject"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🛠️ Caretaker",
+      "item": [
+        {
+          "name": "Get Caretaker Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{caretaker_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/caretaker/dashboard",
+              "host": ["{{base_url}}"],
+              "path": ["api", "caretaker", "dashboard"]
+            }
+          }
+        },
+        {
+          "name": "Get Hostel Complaints",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{caretaker_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/caretaker/complaints",
+              "host": ["{{base_url}}"],
+              "path": ["api", "caretaker", "complaints"]
+            }
+          }
+        },
+        {
+          "name": "Update Complaint Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{caretaker_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"notes\": \"AC repaired and tested\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/caretaker/complaints/1/status",
+              "host": ["{{base_url}}"],
+              "path": ["api", "caretaker", "complaints", "1", "status"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -36,18 +36,24 @@ export const adminService = {
     }
   },
 
-  getHostels: async () => {
+  getHostels: async (forceRefresh = false) => {
     const HOSTELS_KEY = 'admin_hostels';
     
+    // If force refresh, clear the cache first
+    if (forceRefresh) {
+      console.log('🔄 Force refreshing hostels...');
+      storeSessionData(HOSTELS_KEY, null);
+    }
+    
     // Check if data already exists in current session
-    if (hasSessionData(HOSTELS_KEY)) {
+    if (!forceRefresh && hasSessionData(HOSTELS_KEY)) {
       console.log('📦 Returning cached hostels from session');
       return getSessionData(HOSTELS_KEY);
     }
     
-    // First time in this session - fetch from API
+    // Fetch from API
     try {
-      console.log('🔄 Fetching hostels from API (first load in session)');
+      console.log('🔄 Fetching hostels from API');
       const res = await api.get('/admin/hostels');
       const hostels = res || [];
       
@@ -121,18 +127,24 @@ export const adminService = {
     }
   },
 
-  getRoomRequests: async () => {
+  getRoomRequests: async (forceRefresh = false) => {
     const REQUESTS_KEY = 'admin_requests';
     
+    // If force refresh, clear the cache first
+    if (forceRefresh) {
+      console.log('🔄 Force refreshing room requests...');
+      storeSessionData(REQUESTS_KEY, null);
+    }
+    
     // Check if data already exists in current session
-    if (hasSessionData(REQUESTS_KEY)) {
+    if (!forceRefresh && hasSessionData(REQUESTS_KEY)) {
       console.log('📦 Returning cached room requests from session');
       return getSessionData(REQUESTS_KEY);
     }
     
-    // First time in this session - fetch from API
+    // Fetch from API
     try {
-      console.log('🔄 Fetching room requests from API (first load in session)');
+      console.log('🔄 Fetching room requests from API');
       const res = await api.get('/admin/requests');
       const requests = res || [];
       
@@ -149,6 +161,11 @@ export const adminService = {
   createHostel: async (payload) => {
     try {
       const res = await api.post('/admin/hostels', payload);
+      // Clear hostels cache so next fetch gets fresh data
+      storeSessionData('admin_hostels', null);
+      // Also clear rooms cache since new rooms were created
+      storeSessionData('admin_rooms', null);
+      console.log('🗑️ Cleared hostels and rooms cache after creation');
       return res;
     } catch (err) {
       console.error('Error creating hostel:', err);
@@ -159,6 +176,9 @@ export const adminService = {
   updateHostel: async (hostelId, payload) => {
     try {
       const res = await api.put(`/admin/hostels/${hostelId}`, payload);
+      // Clear hostels cache so next fetch gets fresh data
+      storeSessionData('admin_hostels', null);
+      console.log('🗑️ Cleared hostels cache after update');
       return res;
     } catch (err) {
       console.error('Error updating hostel:', err);
@@ -169,6 +189,11 @@ export const adminService = {
   deleteHostel: async (hostelId) => {
     try {
       const res = await api.delete(`/admin/hostels/${hostelId}`);
+      // Clear hostels cache so next fetch gets fresh data
+      storeSessionData('admin_hostels', null);
+      // Also clear rooms cache since rooms were deleted
+      storeSessionData('admin_rooms', null);
+      console.log('🗑️ Cleared hostels and rooms cache after deletion');
       return res;
     } catch (err) {
       console.error('Error deleting hostel:', err);
@@ -243,6 +268,9 @@ export const adminService = {
         admin_comment: adminComment,
         approved_room_id: roomId 
       });
+      // Clear room requests cache so next fetch gets fresh data
+      storeSessionData('admin_requests', null);
+      console.log('🗑️ Cleared room requests cache after approval');
       return res;
     } catch (err) {
       console.error('Error approving request:', err);
@@ -256,6 +284,9 @@ export const adminService = {
         action: 'reject', 
         admin_comment: adminComment 
       });
+      // Clear room requests cache so next fetch gets fresh data
+      storeSessionData('admin_requests', null);
+      console.log('🗑️ Cleared room requests cache after rejection');
       return res;
     } catch (err) {
       console.error('Error rejecting request:', err);

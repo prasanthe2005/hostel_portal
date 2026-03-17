@@ -81,8 +81,8 @@ const Register = () => {
       
       console.log('Registration successful! Response:', registerRes);
       
-      // Show success message
-      if (registerRes && registerRes.token) {
+      // Show success message (no token returned, registration returns success message)
+      if (registerRes && (registerRes.message || registerRes.user)) {
         setSuccess(true);
         setError('');
         
@@ -90,11 +90,13 @@ const Register = () => {
         setTimeout(() => {
           navigate('/login', { 
             state: { 
-              message: 'Registration successful! Please login with your credentials.',
+              message: registerRes.message || 'Registration successful! Please login with your credentials.',
               email: formData.email 
             } 
           });
         }, 2000);
+      } else {
+        setError('Unexpected response from server');
       }
     } catch (err) {
       console.error('Registration failed with error:', err);

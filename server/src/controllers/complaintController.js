@@ -2,31 +2,46 @@ import pool from '../config/db.js';
 
 // Submit a complaint
 export async function submitComplaint(req, res) {
+  console.log('\n=== 📝 SUBMIT COMPLAINT REQUEST ===');
   const { complaint_type, description } = req.body;
   const studentId = req.user.student_id;
+  console.log('Student ID:', studentId);
+  console.log('Complaint type:', complaint_type);
+  console.log('Description:', description);
 
   if (!complaint_type || !description) {
+    console.log('❌ Missing required fields');
     return res.status(400).json({ error: 'Complaint type and description are required' });
   }
-
+  
+  console.log('✅ Validation passed');
   const conn = await pool.getConnection();
+  
   try {
+    console.log('🔍 Getting student\'s room allocation...');
     // Get student's room
     const [allocations] = await conn.query(
       'SELECT room_id FROM room_allocations WHERE student_id = ?',
       [studentId]
     );
-
+    
     if (allocations.length === 0) {
+      console.log('❌ Student not allocated to any room');
+      console.log('=== ❌ COMPLAINT SUBMISSION FAILED ===\n');
       return res.status(400).json({ error: 'You must be allocated a room to submit complaints' });
     }
 
     const roomId = allocations[0].room_id;
-
+    console.log('✅ Student allocated to room ID:', roomId);
+    
+    console.log('💾 Inserting complaint into database...');
     const [result] = await conn.query(
       'INSERT INTO complaints (student_id, room_id, complaint_type, description, status) VALUES (?, ?, ?, ?, ?)',
       [studentId, roomId, complaint_type, description, 'Pending']
     );
+    
+    console.log('✅ Complaint created with ID:', result.insertId);
+    console.log('🔍 Fetching complete complaint details...');
 
     // Fetch the created complaint
     const [complaint] = await conn.query(
@@ -39,9 +54,13 @@ export async function submitComplaint(req, res) {
       [result.insertId]
     );
 
+    console.log('📤 Sending response with complaint details');
+    console.log('Response:', JSON.stringify(complaint[0], null, 2));
+    console.log('=== ✅ COMPLAINT SUBMITTED SUCCESSFULLY ===\n');
     res.status(201).json(complaint[0]);
   } catch (err) {
-    console.error('Error submitting complaint:', err);
+    console.error('❌ Error submitting complaint:', err.message);
+    console.log('=== ❌ COMPLAINT SUBMISSION FAILED ===\n');
     res.status(500).json({ error: err.message });
   } finally {
     conn.release();
@@ -50,10 +69,14 @@ export async function submitComplaint(req, res) {
 
 // Get student's complaints
 export async function getMyComplaints(req, res) {
+  console.log('\n=== 📋 GET MY COMPLAINTS REQUEST ===');
   const studentId = req.user.student_id;
+  console.log('Student ID:', studentId);
+  
   const conn = await pool.getConnection();
   
   try {
+    console.log('🔍 Fetching complaints for student...');
     const [complaints] = await conn.query(
       `SELECT c.*, r.room_number, h.hostel_name
        FROM complaints c
@@ -64,6 +87,10 @@ export async function getMyComplaints(req, res) {
       [studentId]
     );
 
+    console.log('✅ Found', complaints.length, 'complaints');
+    console.log('📤 Sending complaints list');
+    console.log('=== ✅ COMPLAINTS RETRIEVED ===\n');
+    
     // Prevent caching to ensure fresh data
     res.set({
       'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -72,7 +99,8 @@ export async function getMyComplaints(req, res) {
     });
     res.json(complaints);
   } catch (err) {
-    console.error('Error fetching complaints:', err);
+    console.error('❌ Error fetching complaints:', err.message);
+    console.log('=== ❌ RETRIEVAL FAILED ===\n');
     res.status(500).json({ error: err.message });
   } finally {
     conn.release();

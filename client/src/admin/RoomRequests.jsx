@@ -24,16 +24,22 @@ const RoomRequests = () => {
     filterRequests();
   }, [requests, selectedFilter, searchQuery]);
 
-  const loadRequests = async () => {
+  const loadRequests = async (forceRefresh = false) => {
     try {
       setLoading(true);
-      const data = await adminService.getRoomRequests();
+      const data = await adminService.getRoomRequests(forceRefresh);
       setRequests(data);
+      console.log('📊 Loaded requests:', data.length);
     } catch (err) {
       console.error('Error loading requests:', err);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    console.log('🔄 Manually refreshing room requests...');
+    loadRequests(true); // Force refresh
   };
 
   const filterRequests = () => {
@@ -95,8 +101,8 @@ const RoomRequests = () => {
         );
       }
 
-      // Reload requests
-      await loadRequests();
+      // Reload requests with force refresh to get latest data
+      await loadRequests(true);
       closeModal();
     } catch (err) {
       console.error('Error processing request:', err);
@@ -223,8 +229,9 @@ const RoomRequests = () => {
             <option value="rejected">Rejected</option>
           </select>
           <button 
-            onClick={loadRequests}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold shadow-md transition-colors"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white rounded-lg text-sm font-bold shadow-md transition-colors"
           >
             <span className="material-symbols-outlined text-lg">refresh</span>
             Refresh

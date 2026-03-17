@@ -38,7 +38,6 @@ export default function Login() {
     });
     setError('');
   };
-
   const handleUserTypeChange = (userType) => {
     setFormData({
       ...formData,

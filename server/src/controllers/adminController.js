@@ -90,6 +90,7 @@ export async function listHostels(req,res){
 }
 
 export async function listStudents(req,res){
+  console.log('\n=== 👥 LIST STUDENTS REQUEST ===');
   const conn = await pool.getConnection();
   try{
     const [rows] = await conn.query(`
@@ -103,8 +104,25 @@ export async function listStudents(req,res){
       LEFT JOIN hostels h ON r.hostel_id = h.hostel_id
       ORDER BY s.created_at DESC
     `);
+    
+    console.log(`✅ Found ${rows.length} students`);
+    console.log('Students:', rows.map(s => ({
+      id: s.student_id,
+      name: s.name,
+      email: s.email,
+      status: s.allocation_status,
+      room: s.room_number || 'Not allocated'
+    })));
+    console.log('=== ✅ LIST STUDENTS SUCCESS ===\n');
+    
     res.json(rows);
-  }catch(err){ res.status(500).json({error:err.message}); }finally{ conn.release(); }
+  }catch(err){ 
+    console.log('❌ ERROR:', err.message);
+    console.log('=== ❌ LIST STUDENTS FAILED ===\n');
+    res.status(500).json({error:err.message}); 
+  }finally{ 
+    conn.release(); 
+  }
 }
 
 export async function updateHostel(req,res){
@@ -156,6 +174,7 @@ export async function deleteHostel(req,res){
 }
 
 export async function listRooms(req,res){
+  console.log('\n=== 🏠 LIST ROOMS REQUEST ===');
   const conn = await pool.getConnection();
   try{
     const [rows] = await conn.query(`
@@ -172,8 +191,33 @@ export async function listRooms(req,res){
       LEFT JOIN floors f ON r.floor_id = f.floor_id
       ORDER BY h.hostel_name, f.floor_number, r.room_number
     `);
+    
+    console.log(`✅ Found ${rows.length} rooms`);
+    console.log('Room types:', {
+      AC: rows.filter(r => r.type === 'AC').length,
+      'Non-AC': rows.filter(r => r.type === 'Non-AC').length
+    });
+    console.log('Total capacity:', rows.reduce((acc, r) => acc + r.capacity, 0), 'beds');
+    console.log('Total assigned:', rows.reduce((acc, r) => acc + r.assigned, 0), 'beds');
+    console.log('Available rooms:', rows.filter(r => r.assigned < r.capacity).length);
+    console.log('Occupied rooms:', rows.filter(r => r.assigned >= r.capacity).length);
+    console.log('Sample rooms:', rows.slice(0, 3).map(r => ({
+      room_number: r.room_number,
+      type: r.type,
+      capacity: r.capacity,
+      assigned: r.assigned,
+      status: r.status
+    })));
+    console.log('=== ✅ LIST ROOMS SUCCESS ===\n');
+    
     res.json(rows);
-  }catch(err){ res.status(500).json({error:err.message}); }finally{ conn.release(); }
+  }catch(err){ 
+    console.log('❌ ERROR:', err.message);
+    console.log('=== ❌ LIST ROOMS FAILED ===\n');
+    res.status(500).json({error:err.message}); 
+  }finally{ 
+    conn.release(); 
+  }
 }
 
 export async function createRoom(req, res) {
@@ -438,66 +482,118 @@ export async function listRequests(req,res){
 }
 
 export async function handleRequest(req,res){
+  console.log('\n=== 📋 ROOM CHANGE REQUEST APPROVAL ===');
   const {id} = req.params;
-  const {action,admin_comment,approved_room_id} = req.body; // action: approve/reject
-  if(!['approve','reject'].includes(action)) return res.status(400).json({error:'invalid action'});
+  const {action,admin_comment,approved_room_id} = req.body;
+  console.log('Request ID:', id);
+  console.log('Action:', action);
+  console.log('Approved Room ID:', approved_room_id);
+  console.log('Admin Comment:', admin_comment);
+  
+  if(!['approve','reject'].includes(action)) {
+    console.log('❌ Invalid action');
+    return res.status(400).json({error:'invalid action'});
+  }
+  
   const conn = await pool.getConnection();
   try{
     await conn.beginTransaction();
+    console.log('🔍 Fetching request details...');
+    
     const [rows] = await conn.query('SELECT * FROM room_change_requests WHERE request_id=?',[id]);
-    if(rows.length===0) return res.status(404).json({error:'not found'});
+    if(rows.length===0) {
+      console.log('❌ Request not found');
+      await conn.rollback();
+      return res.status(404).json({error:'not found'});
+    }
     const reqRow = rows[0];
+    console.log('✅ Request found for student:', reqRow.student_id);
+    console.log('Choices:', {choice1: reqRow.choice1, choice2: reqRow.choice2, choice3: reqRow.choice3});
     
     if(action==='reject'){
+      console.log('🚫 Rejecting request...');
       await conn.query('UPDATE room_change_requests SET status=?, admin_comment=? WHERE request_id=?',['rejected',admin_comment||null,id]);
       await conn.commit();
+      console.log('✅ Request rejected successfully');
+      console.log('=== ✅ REJECTION SUCCESS ===\n');
       return res.json({message:'Request rejected'});
     }
     
     // approve: use approved_room_id if provided, otherwise try first available choice
     let targetRoomId = approved_room_id;
+    console.log('🔍 Finding target room...');
     
     if(!targetRoomId){
+      console.log('No specific room provided, checking choices...');
       const choices = [reqRow.choice1, reqRow.choice2, reqRow.choice3].filter(Boolean);
       for(const roomId of choices){
+        console.log(`Checking room ${roomId}...`);
         const [r] = await conn.query('SELECT capacity, (SELECT COUNT(*) FROM room_allocations ra WHERE ra.room_id=?) as assigned FROM rooms WHERE room_id=?',[roomId,roomId]);
-        if(r.length===0) continue;
+        if(r.length===0) {
+          console.log(`Room ${roomId} not found`);
+          continue;
+        }
         const room = r[0];
+        console.log(`Room ${roomId}: ${room.assigned}/${room.capacity} occupied`);
         if(room.assigned < room.capacity){
           targetRoomId = roomId;
+          console.log(`✅ Room ${roomId} is available`);
           break;
         }
       }
     }
     
     if(!targetRoomId){
+      console.log('❌ No available room found from choices');
       await conn.query('UPDATE room_change_requests SET status=?, admin_comment=? WHERE request_id=?',['rejected',admin_comment || 'No available room from choices',id]);
       await conn.commit();
+      console.log('=== ⚠️ AUTO-REJECTED (No capacity) ===\n');
       return res.json({message:'No available choice; request rejected'});
     }
     
-    // Check if room has capacity
+    console.log(`🎯 Target room selected: ${targetRoomId}`);
+    
+    // Final capacity check
     const [roomCheck] = await conn.query('SELECT capacity, (SELECT COUNT(*) FROM room_allocations ra WHERE ra.room_id=?) as assigned FROM rooms WHERE room_id=?',[targetRoomId,targetRoomId]);
     if(roomCheck.length === 0 || roomCheck[0].assigned >= roomCheck[0].capacity){
+      console.log('❌ Target room is full or does not exist');
       await conn.rollback();
       return res.status(400).json({error:'Selected room is full or does not exist'});
     }
+    console.log(`✅ Room ${targetRoomId} has capacity: ${roomCheck[0].assigned}/${roomCheck[0].capacity}`);
+    
+    // Get student's old room for logging
+    const [oldAlloc] = await conn.query('SELECT room_id FROM room_allocations WHERE student_id=?',[reqRow.student_id]);
+    const oldRoomId = oldAlloc.length > 0 ? oldAlloc[0].room_id : null;
+    console.log(`Old room: ${oldRoomId || 'None'}, New room: ${targetRoomId}`);
     
     // Remove old allocation
-    await conn.query('DELETE FROM room_allocations WHERE student_id=?',[reqRow.student_id]);
+    console.log('🗑️ Removing old allocation...');
+    const [deleteResult] = await conn.query('DELETE FROM room_allocations WHERE student_id=?',[reqRow.student_id]);
+    console.log(`Deleted ${deleteResult.affectedRows} old allocation(s)`);
     
     // Add new allocation
+    console.log('➕ Adding new allocation...');
     await conn.query('INSERT INTO room_allocations (student_id,room_id) VALUES (?,?)',[reqRow.student_id, targetRoomId]);
+    console.log('✅ New allocation created');
     
     // Update student allocation status
+    console.log('📝 Updating student status...');
     await conn.query("UPDATE student SET allocation_status = 'Allocated' WHERE student_id = ?",[reqRow.student_id]);
+    console.log('✅ Student status updated to Allocated');
     
     // Update request status
+    console.log('📝 Updating request status...');
     await conn.query('UPDATE room_change_requests SET status=?, admin_comment=? WHERE request_id=?',['approved',admin_comment||'Request approved',id]);
+    console.log('✅ Request marked as approved');
     
     await conn.commit();
-    res.json({message:'Request approved and room changed successfully'});
+    console.log('✅ Transaction committed successfully');
+    console.log('=== ✅ APPROVAL SUCCESS ===\n');
+    res.json({message:'Request approved and room changed successfully', new_room_id: targetRoomId, old_room_id: oldRoomId});
   }catch(err){ 
+    console.log('❌ ERROR:', err.message);
+    console.log('=== ❌ APPROVAL FAILED ===\n');
     await conn.rollback();
     res.status(500).json({error:err.message}); 
   }finally{ 
@@ -506,38 +602,97 @@ export async function handleRequest(req,res){
 }
 
 export async function allocateRoomToStudent(req,res){
+  console.log('\n=== 🏠 ALLOCATE ROOM TO STUDENT ===');
   const {studentId, roomId} = req.body;
-  if(!studentId || !roomId) return res.status(400).json({error:'studentId and roomId required'});
+  console.log('Request body:', req.body);
+  console.log('Student ID:', studentId, 'Type:', typeof studentId);
+  console.log('Room ID:', roomId, 'Type:', typeof roomId);
+  
+  if(!studentId || !roomId) {
+    console.log('❌ Missing studentId or roomId');
+    return res.status(400).json({error:'studentId and roomId required'});
+  }
+  
   const conn = await pool.getConnection();
   try{
     await conn.beginTransaction();
-    // Check if student already has allocation
-    const [existing] = await conn.query('SELECT * FROM room_allocations WHERE student_id=?',[studentId]);
-    if(existing.length > 0){
-      return res.status(400).json({error:'Student already has a room allocation'});
-    }
-    // Check if room has capacity
-    const [roomCheck] = await conn.query('SELECT capacity, (SELECT COUNT(*) FROM room_allocations ra WHERE ra.room_id=?) as assigned FROM rooms WHERE room_id=?',[roomId,roomId]);
-    if(roomCheck.length === 0){
+    
+    // Check if student exists
+    console.log('🔍 Checking if student exists...');
+    const [studentCheck] = await conn.query('SELECT student_id, name, residence_type, allocation_status FROM student WHERE student_id=?',[studentId]);
+    if(studentCheck.length === 0){
+      console.log('❌ Student not found:', studentId);
       await conn.rollback();
-      return res.status(404).json({error:'Room not found'});
+      return res.status(404).json({error:`Student with ID ${studentId} not found`});
+    }
+    console.log('✅ Student found:', studentCheck[0].name, '- Current status:', studentCheck[0].allocation_status);
+    
+    // Check if student is DayScholar
+    if(studentCheck[0].residence_type === 'DayScholar'){
+      console.log('❌ Cannot allocate room to DayScholar');
+      await conn.rollback();
+      return res.status(400).json({error:'Cannot allocate room to Day Scholar students'});
+    }
+    
+    console.log('🔍 Checking for existing allocation...');
+    // Check if student already has allocation
+    const [existing] = await conn.query('SELECT ra.allocation_id, r.room_number FROM room_allocations ra LEFT JOIN rooms r ON ra.room_id = r.room_id WHERE ra.student_id=?',[studentId]);
+    if(existing.length > 0){
+      console.log('❌ Student already has allocation:', existing[0]);
+      await conn.rollback();
+      return res.status(400).json({error:`Student already has a room allocation (Room: ${existing[0].room_number}). Please deallocate first.`});
+    }
+    console.log('✅ No existing allocation found');
+    
+    console.log('🔍 Checking room capacity...');
+    // Check if room has capacity
+    const [roomCheck] = await conn.query(`
+      SELECT r.room_id, r.room_number, r.capacity, r.type,
+        (SELECT COUNT(*) FROM room_allocations ra WHERE ra.room_id=?) as assigned
+      FROM rooms r 
+      WHERE r.room_id=?
+    `,[roomId,roomId]);
+    
+    if(roomCheck.length === 0){
+      console.log('❌ Room not found:', roomId);
+      await conn.rollback();
+      return res.status(404).json({error:`Room with ID ${roomId} not found`});
     }
     const room = roomCheck[0];
+    console.log(`✅ Room found: ${room.room_number} (${room.type})`);
+    console.log(`   Capacity: ${room.assigned}/${room.capacity}`);
+    
     if(room.assigned >= room.capacity){
+      console.log('❌ Room is full');
       await conn.rollback();
-      return res.status(400).json({error:'Room is full'});
+      return res.status(400).json({error:`Room ${room.room_number} is full (${room.assigned}/${room.capacity})`});
     }
+    console.log('✅ Room has capacity');
+    
     // Allocate room
+    console.log('➕ Allocating room to student...');
     await conn.query('INSERT INTO room_allocations (student_id,room_id) VALUES (?,?)',[studentId,roomId]);
+    console.log('✅ Room allocated');
     
     // Update student allocation status
+    console.log('📝 Updating student status...');
     await conn.query("UPDATE student SET allocation_status = 'Allocated' WHERE student_id = ?",[studentId]);
+    console.log('✅ Student status updated');
     
     await conn.commit();
-    res.json({message:'Room allocated successfully'});
+    console.log('✅ Transaction committed');
+    console.log(`=== ✅ SUCCESS: ${studentCheck[0].name} allocated to Room ${room.room_number} ===\n`);
+    res.json({
+      message: 'Room allocated successfully',
+      student: studentCheck[0].name,
+      room: room.room_number
+    });
   }catch(err){ 
+    console.log('❌ ERROR:', err.message);
+    console.log('Error stack:', err.stack);
+    console.log('=== ❌ ALLOCATION FAILED ===\n');
     await conn.rollback(); 
-    res.status(500).json({error:err.message}); 
+    res.status(500).json({error: `Failed to allocate room: ${err.message}`}); 
   }finally{ 
     conn.release(); 
   }

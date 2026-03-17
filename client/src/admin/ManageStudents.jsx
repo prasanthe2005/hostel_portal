@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import adminService from '../services/admin.service';
+import { clearSessionData } from '../utils/sessionManager';
 
 export default function ManageStudents() {
   const [students, setStudents] = useState([]);
@@ -14,17 +15,31 @@ export default function ManageStudents() {
 
   async function loadData() {
     try {
+      console.log('🔄 Loading students and rooms data...');
       const [studentsData, roomsData] = await Promise.all([
         adminService.getAllStudents(),
         adminService.getRooms()
       ]);
+      console.log('📊 Students loaded:', studentsData.length, 'students');
+      console.log('Students data:', studentsData);
+      console.log('📊 Rooms loaded:', roomsData.length, 'rooms');
       setStudents(studentsData);
       setRooms(roomsData);
     } catch (err) {
-      console.error('Error loading data:', err);
+      console.error('❌ Error loading data:', err);
+      console.error('Error details:', err.response || err.message);
     } finally {
       setLoading(false);
     }
+  }
+  
+  async function handleRefresh() {
+    console.log('🔄 Force refreshing students data...');
+    // Clear cached data
+    clearSessionData('admin_students');
+    clearSessionData('admin_rooms');
+    setLoading(true);
+    await loadData();
   }
 
   async function handleAllocateRoom() {
@@ -34,14 +49,36 @@ export default function ManageStudents() {
     }
 
     try {
-      await adminService.allocateRoomToStudent(selectedStudent.student_id, selectedRoom);
-      alert('Room allocated successfully!');
+      console.log('Allocating room:', {
+        student: selectedStudent.student_id,
+        studentName: selectedStudent.name,
+        room: selectedRoom
+      });
+      
+      const result = await adminService.allocateRoomToStudent(selectedStudent.student_id, selectedRoom);
+      
+      console.log('Allocation result:', result);
+      alert(`✅ Room allocated successfully!\n${selectedStudent.name} → Room ${result.room || ''}`);
+      
+      // Clear selections
       setSelectedStudent(null);
       setSelectedRoom('');
-      loadData();
+      
+      // Clear cache and reload fresh data
+      clearSessionData('admin_students');
+      clearSessionData('admin_rooms');
+      await loadData();
     } catch (err) {
-      console.error('Error allocating room:', err);
-      alert('Failed to allocate room');
+      console.error('❌ Error allocating room:', err);
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response,
+        data: err.response?.data
+      });
+      
+      // Show detailed error message
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to allocate room';
+      alert(`❌ Failed to allocate room\n\n${errorMessage}`);
     }
   }
 
@@ -51,12 +88,18 @@ export default function ManageStudents() {
     }
 
     try {
-      await adminService.allocateRooms();
-      alert('Bulk allocation completed!');
-      loadData();
+      const result = await adminService.allocateRooms();
+      console.log('Bulk allocation result:', result);
+      alert('✅ Bulk allocation completed!');
+      
+      // Clear cache and reload
+      clearSessionData('admin_students');
+      clearSessionData('admin_rooms');
+      await loadData();
     } catch (err) {
-      console.error('Error in bulk allocation:', err);
-      alert('Failed to allocate rooms');
+      console.error('❌ Error in bulk allocation:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to allocate rooms';
+      alert(`❌ Failed to allocate rooms\n\n${errorMessage}`);
     }
   }
 
@@ -67,11 +110,16 @@ export default function ManageStudents() {
 
     try {
       await adminService.deallocateRoom(studentId);
-      alert('Room deallocated successfully!');
-      loadData();
+      alert('✅ Room deallocated successfully!');
+      
+      // Clear cache and reload
+      clearSessionData('admin_students');
+      clearSessionData('admin_rooms');
+      await loadData();
     } catch (err) {
-      console.error('Error deallocating room:', err);
-      alert('Failed to deallocate room');
+      console.error('❌ Error deallocating room:', err);
+      const errorMessage = err.response?.data?.error || err.message || 'Failed to deallocate room';
+      alert(`❌ Failed to deallocate room\n\n${errorMessage}`);
     }
   }
 
@@ -92,12 +140,22 @@ export default function ManageStudents() {
             View student profiles and allocate rooms
           </p>
         </div>
-        <button
-          onClick={handleBulkAllocate}
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-        >
-          Auto-Allocate (FCFS)
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleRefresh}
+            className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center gap-2"
+            disabled={loading}
+          >
+            <span className="material-symbols-outlined text-sm">refresh</span>
+            Refresh
+          </button>
+          <button
+            onClick={handleBulkAllocate}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Auto-Allocate (FCFS)
+          </button>
+        </div>
       </div>
 
       {/* Statistics */}
