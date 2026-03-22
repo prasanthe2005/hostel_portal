@@ -11,6 +11,7 @@ import ManageRooms from '../admin/ManageRooms';
 import RoomRequests from '../admin/RoomRequests';
 import ManageStudents from '../admin/ManageStudents';
 import ManageCaretakers from '../admin/ManageCaretakers';
+import ManageWardens from '../admin/ManageWardens';
 import StudentDashboard from '../student/StudentDashboard';
 import RequestRoom from '../pages/student/RequestRoom';
 import RequestRoomChange from '../student/RequestRoomChange';
@@ -19,6 +20,7 @@ import MyComplaints from '../pages/student/MyComplaints';
 import HelpSupport from '../pages/student/HelpSupport';
 import HostelRules from '../pages/student/HostelRules';
 import CaretakerDashboard from '../caretaker/CaretakerDashboard';
+import WardenDashboard from '../warden/WardenDashboard';
 
 const AppRoutes = () => {
   // Public Route Component (always show login page first)
@@ -36,6 +38,7 @@ const AppRoutes = () => {
       {/* Direct Access Routes for Testing */}
       <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
       <Route path="/student" element={<Navigate to="/student/dashboard" replace />} />
+      <Route path="/warden" element={<Navigate to="/warden/dashboard" replace />} />
 
       {/* Public Routes */}
       <Route path="/login" element={
@@ -54,6 +57,12 @@ const AppRoutes = () => {
       <Route path="/caretaker/dashboard" element={
         <ProtectedRoute allowedRoles={['caretaker']}>
           <CaretakerDashboard />
+        </ProtectedRoute>
+      } />
+
+      <Route path="/warden/dashboard" element={
+        <ProtectedRoute allowedRoles={['warden']}>
+          <WardenDashboard />
         </ProtectedRoute>
       } />
 
@@ -102,6 +111,14 @@ const AppRoutes = () => {
         <ProtectedRoute allowedRoles={['admin']}>
           <AdminLayout title="Manage Caretakers">
             <ManageCaretakers />
+          </AdminLayout>
+        </ProtectedRoute>
+      } />
+
+      <Route path="/admin/wardens" element={
+        <ProtectedRoute allowedRoles={['admin']}>
+          <AdminLayout title="Warden Management">
+            <ManageWardens />
           </AdminLayout>
         </ProtectedRoute>
       } />

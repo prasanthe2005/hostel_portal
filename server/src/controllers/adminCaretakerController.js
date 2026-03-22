@@ -5,12 +5,22 @@ import bcrypt from 'bcryptjs';
 export async function createCaretaker(req, res) {
   const { name, email, password, phone, hostel_id } = req.body;
 
-  if (!name || !email || !password) {
-    return res.status(400).json({ error: 'Name, email, and password are required' });
+  if (!name || !email || !password || !hostel_id) {
+    return res.status(400).json({ error: 'Name, email, password, and hostel_id are required' });
   }
 
   const conn = await pool.getConnection();
   try {
+    // Ensure selected hostel exists
+    const [hostels] = await conn.query(
+      'SELECT hostel_id FROM hostels WHERE hostel_id = ? LIMIT 1',
+      [hostel_id]
+    );
+
+    if (hostels.length === 0) {
+      return res.status(400).json({ error: 'Invalid hostel selected' });
+    }
+
     // Check if email already exists
     const [existing] = await conn.query(
       'SELECT caretaker_id FROM caretakers WHERE email = ?',
@@ -27,7 +37,7 @@ export async function createCaretaker(req, res) {
     // Insert caretaker
     const [result] = await conn.query(
       'INSERT INTO caretakers (name, email, password, phone, hostel_id) VALUES (?, ?, ?, ?, ?)',
-      [name, email, hashedPassword, phone || null, hostel_id || null]
+      [name, email, hashedPassword, phone || null, hostel_id]
     );
 
     // Fetch created caretaker with hostel name
@@ -97,13 +107,28 @@ export async function updateCaretaker(req, res) {
 
   const conn = await pool.getConnection();
   try {
+    if (hostel_id !== undefined) {
+      if (!hostel_id) {
+        return res.status(400).json({ error: 'hostel_id is required for caretaker assignment' });
+      }
+
+      const [hostels] = await conn.query(
+        'SELECT hostel_id FROM hostels WHERE hostel_id = ? LIMIT 1',
+        [hostel_id]
+      );
+
+      if (hostels.length === 0) {
+        return res.status(400).json({ error: 'Invalid hostel selected' });
+      }
+    }
+
     const updates = [];
     const values = [];
 
     if (name) { updates.push('name = ?'); values.push(name); }
     if (email) { updates.push('email = ?'); values.push(email); }
     if (phone !== undefined) { updates.push('phone = ?'); values.push(phone || null); }
-    if (hostel_id !== undefined) { updates.push('hostel_id = ?'); values.push(hostel_id || null); }
+    if (hostel_id !== undefined) { updates.push('hostel_id = ?'); values.push(hostel_id); }
     
     if (password) {
       const hashedPassword = await bcrypt.hash(password, 10);

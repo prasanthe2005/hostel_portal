@@ -20,6 +20,16 @@ const STATUS_ICONS = {
   'Reopened': 'replay'
 };
 
+const normalizeStatus = (status) => {
+  const normalized = String(status || '').trim().toLowerCase();
+  if (normalized === 'pending') return 'Pending';
+  if (normalized === 'in progress' || normalized === 'in_progress') return 'In Progress';
+  if (normalized === 'resolved') return 'Resolved';
+  if (normalized === 'completed') return 'Completed';
+  if (normalized === 'reopened') return 'Reopened';
+  return 'Pending';
+};
+
 export default function CaretakerDashboard() {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
@@ -102,8 +112,31 @@ export default function CaretakerDashboard() {
 
   const filteredComplaints = dashboardData?.complaints.filter(complaint => {
     if (filter === 'all') return true;
-    return complaint.status === filter;
+    return normalizeStatus(complaint.status) === filter;
   }) || [];
+
+  const complaintStats = (dashboardData?.complaints || []).reduce(
+    (acc, complaint) => {
+      const normalizedStatus = normalizeStatus(complaint.status);
+      acc.total_complaints += 1;
+
+      if (normalizedStatus === 'Pending') acc.pending += 1;
+      if (normalizedStatus === 'In Progress') acc.in_progress += 1;
+      if (normalizedStatus === 'Resolved') acc.resolved += 1;
+      if (normalizedStatus === 'Completed') acc.completed += 1;
+      if (normalizedStatus === 'Reopened') acc.reopened += 1;
+
+      return acc;
+    },
+    {
+      total_complaints: 0,
+      pending: 0,
+      in_progress: 0,
+      resolved: 0,
+      completed: 0,
+      reopened: 0
+    }
+  );
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString('en-US', {
@@ -220,7 +253,7 @@ export default function CaretakerDashboard() {
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total</p>
                 <p className="text-3xl font-black text-gray-900 dark:text-white">
-                  {dashboardData?.statistics.total_complaints || 0}
+                  {complaintStats.total_complaints}
                 </p>
               </div>
               <span className="material-symbols-outlined text-5xl text-gray-400 opacity-30">folder</span>
@@ -232,7 +265,7 @@ export default function CaretakerDashboard() {
               <div>
                 <p className="text-sm font-medium text-yellow-700 dark:text-yellow-400 mb-1">Pending</p>
                 <p className="text-3xl font-black text-yellow-800 dark:text-yellow-300">
-                  {dashboardData?.statistics.pending || 0}
+                  {complaintStats.pending}
                 </p>
               </div>
               <span className="material-symbols-outlined text-5xl text-yellow-500 opacity-30">schedule</span>
@@ -244,7 +277,7 @@ export default function CaretakerDashboard() {
               <div>
                 <p className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">In Progress</p>
                 <p className="text-3xl font-black text-blue-800 dark:text-blue-300">
-                  {dashboardData?.statistics.in_progress || 0}
+                  {complaintStats.in_progress}
                 </p>
               </div>
               <span className="material-symbols-outlined text-5xl text-blue-500 opacity-30">construction</span>
@@ -256,7 +289,7 @@ export default function CaretakerDashboard() {
               <div>
                 <p className="text-sm font-medium text-purple-700 dark:text-purple-400 mb-1">Resolved</p>
                 <p className="text-3xl font-black text-purple-800 dark:text-purple-300">
-                  {dashboardData?.statistics.resolved || 0}
+                  {complaintStats.resolved}
                 </p>
               </div>
               <span className="material-symbols-outlined text-5xl text-purple-500 opacity-30">check_circle</span>
@@ -268,7 +301,7 @@ export default function CaretakerDashboard() {
               <div>
                 <p className="text-sm font-medium text-green-700 dark:text-green-400 mb-1">Completed</p>
                 <p className="text-3xl font-black text-green-800 dark:text-green-300">
-                  {dashboardData?.statistics.completed || 0}
+                  {complaintStats.completed}
                 </p>
               </div>
               <span className="material-symbols-outlined text-5xl text-green-500 opacity-30">verified</span>
@@ -305,8 +338,11 @@ export default function CaretakerDashboard() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredComplaints.map((complaint) => (
-              <div 
+            {filteredComplaints.map((complaint) => {
+              const complaintStatus = normalizeStatus(complaint.status);
+
+              return (
+              <div
                 key={complaint.complaint_id} 
                 className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl p-6 hover:shadow-lg transition-all"
               >
@@ -319,11 +355,11 @@ export default function CaretakerDashboard() {
                       <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                         {complaint.complaint_type}
                       </h3>
-                      <span className={`px-4 py-2 rounded-lg text-sm font-bold border flex items-center gap-2 ${STATUS_COLORS[complaint.status]}`}>
+                      <span className={`px-4 py-2 rounded-lg text-sm font-bold border flex items-center gap-2 ${STATUS_COLORS[complaintStatus]}`}>
                         <span className="material-symbols-outlined text-base">
-                          {STATUS_ICONS[complaint.status]}
+                          {STATUS_ICONS[complaintStatus]}
                         </span>
-                        {complaint.status}
+                        {complaintStatus}
                       </span>
                     </div>
                     
@@ -374,7 +410,7 @@ export default function CaretakerDashboard() {
                   </div>
                   
                   <div className="flex gap-2 flex-wrap">
-                    {complaint.status !== 'In Progress' && complaint.status !== 'Completed' && (
+                    {complaintStatus !== 'In Progress' && complaintStatus !== 'Completed' && (
                       <button
                         onClick={() => handleStatusChange(complaint.complaint_id, 'In Progress')}
                         disabled={updatingId === complaint.complaint_id}
@@ -393,7 +429,7 @@ export default function CaretakerDashboard() {
                         )}
                       </button>
                     )}
-                    {complaint.status !== 'Resolved' && complaint.status !== 'Completed' && (
+                    {complaintStatus !== 'Resolved' && complaintStatus !== 'Completed' && (
                       <button
                         onClick={() => handleStatusChange(complaint.complaint_id, 'Resolved')}
                         disabled={updatingId === complaint.complaint_id}
@@ -412,19 +448,19 @@ export default function CaretakerDashboard() {
                         )}
                       </button>
                     )}
-                    {complaint.status === 'Resolved' && (
+                    {complaintStatus === 'Resolved' && (
                       <div className="px-4 py-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-700 rounded-lg flex items-center gap-2">
                         <span className="material-symbols-outlined text-purple-600">check_circle</span>
                         <span className="text-sm font-semibold text-purple-800 dark:text-purple-300">Awaiting Student Confirmation</span>
                       </div>
                     )}
-                    {complaint.status === 'Completed' && (
+                    {complaintStatus === 'Completed' && (
                       <div className="px-4 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg flex items-center gap-2">
                         <span className="material-symbols-outlined text-green-600">verified</span>
                         <span className="text-sm font-semibold text-green-800 dark:text-green-300">Completed & Confirmed</span>
                       </div>
                     )}
-                    {complaint.status === 'Reopened' && (
+                    {complaintStatus === 'Reopened' && (
                       <div className="px-4 py-2 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-lg flex items-center gap-2">
                         <span className="material-symbols-outlined text-orange-600">replay</span>
                         <span className="text-sm font-semibold text-orange-800 dark:text-orange-300">Reopened by Student - Needs Attention</span>
@@ -433,7 +469,8 @@ export default function CaretakerDashboard() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>

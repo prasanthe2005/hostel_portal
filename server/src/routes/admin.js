@@ -23,6 +23,12 @@ import {
   deleteCaretaker,
   getComplaintsStats
 } from '../controllers/adminCaretakerController.js';
+import {
+  createWarden,
+  listWardens,
+  updateWarden,
+  deleteWarden
+} from '../controllers/adminWardenController.js';
 import { getAllComplaints, updateComplaintStatus } from '../controllers/complaintController.js';
 const router = express.Router();
 
@@ -58,6 +64,12 @@ router.post('/caretakers', createCaretaker);
 router.get('/caretakers', listCaretakers);
 router.put('/caretakers/:caretaker_id', updateCaretaker);
 router.delete('/caretakers/:caretaker_id', deleteCaretaker);
+
+// Warden routes
+router.post('/wardens', createWarden);
+router.get('/wardens', listWardens);
+router.put('/wardens/:warden_id', updateWarden);
+router.delete('/wardens/:warden_id', deleteWarden);
 
 // Complaint routes (admin view)
 router.get('/complaints', getAllComplaints);

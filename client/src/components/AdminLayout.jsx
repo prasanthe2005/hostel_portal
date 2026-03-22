@@ -14,6 +14,7 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
     { path: '/admin/rooms', icon: 'bed', label: 'Rooms' },
     { path: '/admin/students', icon: 'group', label: 'Students' },
     { path: '/admin/caretakers', icon: 'engineering', label: 'Caretakers' },
+    { path: '/admin/wardens', icon: 'shield_person', label: 'Warden' },
     { path: '/admin/room-requests', icon: 'swap_horiz', label: 'Room Requests' },
   ];
 

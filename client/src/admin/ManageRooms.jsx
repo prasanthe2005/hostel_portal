@@ -12,6 +12,13 @@ const ManageRooms = () => {
   const [selectedType, setSelectedType] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
+  const normalizeToArray = (value) => {
+    if (Array.isArray(value)) return value;
+    if (Array.isArray(value?.data)) return value.data;
+    if (Array.isArray(value?.items)) return value.items;
+    return [];
+  };
+
   useEffect(() => {
     fetchRooms();
     fetchHostels();
@@ -21,9 +28,10 @@ const ManageRooms = () => {
     try {
       setLoading(true);
       const data = await adminService.getRooms();
-      setRooms(data);
+      setRooms(normalizeToArray(data));
     } catch (error) {
       console.error('Failed to fetch rooms:', error);
+      setRooms([]);
     } finally {
       setLoading(false);
     }
@@ -32,9 +40,10 @@ const ManageRooms = () => {
   const fetchHostels = async () => {
     try {
       const data = await adminService.getHostels();
-      setHostels(data);
+      setHostels(normalizeToArray(data));
     } catch (error) {
       console.error('Failed to fetch hostels:', error);
+      setHostels([]);
     }
   };
 
@@ -53,12 +62,19 @@ const ManageRooms = () => {
       : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300';
   };
 
-  const filteredRooms = rooms.filter(room => {
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const safeHostels = Array.isArray(hostels) ? hostels : [];
+
+  const filteredRooms = safeRooms.filter((room) => {
     if (selectedFilter !== 'all' && room.status !== selectedFilter) return false;
     if (selectedHostel !== 'all' && room.hostel_id !== parseInt(selectedHostel)) return false;
     if (selectedType !== 'all' && room.type !== selectedType) return false;
-    if (searchTerm && !room.room_number.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !room.hostel_name?.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+    if (searchTerm) {
+      const query = searchTerm.toLowerCase();
+      const roomNumber = String(room.room_number || '').toLowerCase();
+      const hostelName = String(room.hostel_name || '').toLowerCase();
+      if (!roomNumber.includes(query) && !hostelName.includes(query)) return false;
+    }
     return true;
   });
 
@@ -76,7 +92,7 @@ const ManageRooms = () => {
 
   const handleConvertRoomType = async (roomId, currentType) => {
     // Find the room to check if it has assigned students
-    const room = rooms.find(r => r.room_id === roomId);
+    const room = safeRooms.find(r => r.room_id === roomId);
     if (room && room.assigned > 0) {
       alert(`Cannot convert room type! This room has ${room.assigned} student(s) assigned. Please deallocate students first.`);
       return;
@@ -124,7 +140,7 @@ const ManageRooms = () => {
             onChange={(e) => setSelectedHostel(e.target.value)}
           >
             <option value="all">All Hostels</option>
-            {hostels.map(h => (
+            {safeHostels.map(h => (
               <option key={h.hostel_id} value={h.hostel_id}>{h.hostel_name}</option>
             ))}
           </select>
@@ -239,33 +255,33 @@ const ManageRooms = () => {
       )}
 
       {/* Statistics */}
-      {!loading && rooms.length > 0 && (
+      {!loading && safeRooms.length > 0 && (
         <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Total Rooms</p>
-            <p className="text-2xl font-bold dark:text-white">{rooms.length}</p>
+            <p className="text-2xl font-bold dark:text-white">{safeRooms.length}</p>
           </div>
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
-            <p className="text-2xl font-bold text-green-600">{rooms.filter(r => r.status === 'available').length}</p>
+            <p className="text-2xl font-bold text-green-600">{safeRooms.filter(r => r.status === 'available').length}</p>
           </div>
           <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
             <p className="text-sm text-gray-500 dark:text-gray-400">Occupied</p>
-            <p className="text-2xl font-bold text-red-600">{rooms.filter(r => r.status === 'occupied').length}</p>
+            <p className="text-2xl font-bold text-red-600">{safeRooms.filter(r => r.status === 'occupied').length}</p>
           </div>
           <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-blue-600">ac_unit</span>
               <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">AC Rooms</p>
             </div>
-            <p className="text-2xl font-bold text-blue-600">{rooms.filter(r => r.type === 'AC').length}</p>
+            <p className="text-2xl font-bold text-blue-600">{safeRooms.filter(r => r.type === 'AC').length}</p>
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-green-600">air</span>
               <p className="text-sm text-green-600 dark:text-green-400 font-medium">Non-AC Rooms</p>
             </div>
-            <p className="text-2xl font-bold text-green-600">{rooms.filter(r => r.type === 'Non-AC').length}</p>
+            <p className="text-2xl font-bold text-green-600">{safeRooms.filter(r => r.type === 'Non-AC').length}</p>
           </div>
         </div>
       )}

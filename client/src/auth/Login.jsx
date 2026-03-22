@@ -3,6 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { adminService } from '../services/admin.service.js';
 import { studentService } from '../services/student.service.js';
 import { caretakerService } from '../services/caretaker.service.js';
+import { wardenService } from '../services/warden.service.js';
 import tabSession from '../utils/tabSession.js';
 
 export default function Login() {
@@ -18,6 +19,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const roleOptions = [
+    { value: 'student', label: 'Student' },
+    { value: 'staff', label: 'Caretaker' },
+    { value: 'admin', label: 'Admin' },
+    { value: 'warden', label: 'Warden' }
+  ];
 
   // Show success message from registration
   useEffect(() => {
@@ -38,14 +45,6 @@ export default function Login() {
     });
     setError('');
   };
-  const handleUserTypeChange = (userType) => {
-    setFormData({
-      ...formData,
-      userType
-    });
-    setError('');
-  };
-
   // Demo mode for testing - bypasses authentication
   const handleDemoLogin = (userType) => {
     // Set demo credentials using tab session
@@ -112,8 +111,8 @@ export default function Login() {
         
         navigate('/admin/dashboard');
       } else if (formData.userType === 'staff') {
-        // Staff (Caretaker) login
-        console.log('=== STAFF LOGIN START ===');
+        // Caretaker login
+        console.log('=== CARETAKER LOGIN START ===');
         console.log('Email:', credentials.email);
         
         response = await caretakerService.login(credentials.email, credentials.password);
@@ -133,6 +132,17 @@ export default function Login() {
         console.log(`✅ Caretaker login: Tab ${tabSession.getTabId()} authenticated as ${response.user.name}`);
         
         navigate('/caretaker/dashboard');
+      } else if (formData.userType === 'warden') {
+        response = await wardenService.login(credentials.email, credentials.password);
+
+        if (!response || !response.token || !response.user) {
+          setError('Invalid response from server.');
+          setLoading(false);
+          return;
+        }
+
+        tabSession.setAuth(response.token, 'warden', response.user.name, response.user);
+        navigate('/warden/dashboard');
       } else {
         // Student login
         response = await studentService.login(credentials);
@@ -225,7 +235,8 @@ export default function Login() {
               <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center text-blue-600 mb-2 ring-4 ring-blue-50/50 dark:ring-blue-900/10 transition-all duration-300">
                 <span className="material-symbols-outlined text-5xl">
                   {formData.userType === 'student' ? 'school' : 
-                   formData.userType === 'staff' ? 'assignment_ind' : 
+                   formData.userType === 'staff' ? 'assignment_ind' :
+                   formData.userType === 'warden' ? 'shield_person' :
                    'admin_panel_settings'}
                 </span>
               </div>
@@ -306,62 +317,27 @@ export default function Login() {
               </div>
 
               {/* Role Selector */}
-              <div className="space-y-3 pt-2">
+              <div className="space-y-2 pt-2">
                 <label className="text-gray-900 dark:text-gray-200 text-sm font-semibold leading-normal block">
                   Select Your Role
                 </label>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="relative">
-                    <label 
-                      className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:border-blue-500/50 transition-all text-sm font-bold ${
-                        formData.userType === 'student' 
-                          ? 'border-blue-600 bg-blue-600/5 text-blue-600' 
-                          : 'border-gray-300 dark:border-gray-700 text-gray-600'
-                      }`}
-                      onClick={() => handleUserTypeChange('student')}
-                    >
-                      <span className={`w-4 h-4 rounded-full border-2 mb-2 transition-all ${
-                        formData.userType === 'student' 
-                          ? 'border-blue-600 border-[5px]' 
-                          : 'border-gray-300'
-                      }`}></span>
-                      Student
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <label 
-                      className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:border-blue-500/50 transition-all text-sm font-bold ${
-                        formData.userType === 'staff' 
-                          ? 'border-blue-600 bg-blue-600/5 text-blue-600' 
-                          : 'border-gray-300 dark:border-gray-700 text-gray-600'
-                      }`}
-                      onClick={() => handleUserTypeChange('staff')}
-                    >
-                      <span className={`w-4 h-4 rounded-full border-2 mb-2 transition-all ${
-                        formData.userType === 'staff' 
-                          ? 'border-blue-600 border-[5px]' 
-                          : 'border-gray-300'
-                      }`}></span>
-                      Staff
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <label 
-                      className={`flex flex-col items-center justify-center p-3 border rounded-lg cursor-pointer hover:border-blue-500/50 transition-all text-sm font-bold ${
-                        formData.userType === 'admin' 
-                          ? 'border-blue-600 bg-blue-600/5 text-blue-600' 
-                          : 'border-gray-300 dark:border-gray-700 text-gray-600'
-                      }`}
-                      onClick={() => handleUserTypeChange('admin')}
-                    >
-                      <span className={`w-4 h-4 rounded-full border-2 mb-2 transition-all ${
-                        formData.userType === 'admin' 
-                          ? 'border-blue-600 border-[5px]' 
-                          : 'border-gray-300'
-                      }`}></span>
-                      Admin
-                    </label>
-                  </div>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                    person_search
+                  </span>
+                  <select
+                    name="userType"
+                    value={formData.userType}
+                    onChange={handleInputChange}
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white h-12 pl-11 pr-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all"
+                    required
+                  >
+                    {roleOptions.map((role) => (
+                      <option key={role.value} value={role.value}>
+                        {role.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -410,7 +386,9 @@ export default function Login() {
                   </>
                 ) : (
                   <>
-                    {formData.userType === 'staff' ? 'Staff credentials are provided by administration' : 'Admin access is restricted'}
+                    {formData.userType === 'staff' || formData.userType === 'warden'
+                      ? 'Caretaker/Warden credentials are provided by administration'
+                      : 'Admin access is restricted'}
                   </>
                 )}
                 <span className="mx-2">•</span>

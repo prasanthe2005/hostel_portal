@@ -18,10 +18,14 @@ export async function submitComplaint(req, res) {
   const conn = await pool.getConnection();
   
   try {
-    console.log('🔍 Getting student\'s room allocation...');
-    // Get student's room
+    console.log('🔍 Getting student\'s room allocation and hostel...');
+    // Get student's room and hostel
     const [allocations] = await conn.query(
-      'SELECT room_id FROM room_allocations WHERE student_id = ?',
+      `SELECT ra.room_id, r.hostel_id
+       FROM room_allocations ra
+       JOIN rooms r ON ra.room_id = r.room_id
+       WHERE ra.student_id = ?
+       LIMIT 1`,
       [studentId]
     );
     
@@ -32,7 +36,20 @@ export async function submitComplaint(req, res) {
     }
 
     const roomId = allocations[0].room_id;
+    const hostelId = allocations[0].hostel_id;
     console.log('✅ Student allocated to room ID:', roomId);
+
+    // Ensure complaint is targetable to same-hostel caretaker(s) only
+    const [assignedCaretakers] = await conn.query(
+      'SELECT caretaker_id, name, email FROM caretakers WHERE hostel_id = ?',
+      [hostelId]
+    );
+
+    if (assignedCaretakers.length === 0) {
+      return res.status(400).json({
+        error: 'No caretaker is assigned to your hostel. Please contact admin.'
+      });
+    }
     
     console.log('💾 Inserting complaint into database...');
     const [result] = await conn.query(
@@ -54,10 +71,16 @@ export async function submitComplaint(req, res) {
       [result.insertId]
     );
 
+    const response = {
+      ...complaint[0],
+      target_hostel_id: hostelId,
+      targeted_caretakers_count: assignedCaretakers.length
+    };
+
     console.log('📤 Sending response with complaint details');
-    console.log('Response:', JSON.stringify(complaint[0], null, 2));
+    console.log('Response:', JSON.stringify(response, null, 2));
     console.log('=== ✅ COMPLAINT SUBMITTED SUCCESSFULLY ===\n');
-    res.status(201).json(complaint[0]);
+    res.status(201).json(response);
   } catch (err) {
     console.error('❌ Error submitting complaint:', err.message);
     console.log('=== ❌ COMPLAINT SUBMISSION FAILED ===\n');

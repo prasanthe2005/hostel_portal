@@ -17,6 +17,12 @@ const FALLBACK_STATS = {
 };
 
 export const adminService = {
+  getValidCachedArray: (key) => {
+    if (!hasSessionData(key)) return null;
+    const cached = getSessionData(key);
+    return Array.isArray(cached) ? cached : null;
+  },
+
   // Login against backend. Stores token and user data in tab session on success.
   login: async (credentials) => {
     try {
@@ -46,9 +52,12 @@ export const adminService = {
     }
     
     // Check if data already exists in current session
-    if (!forceRefresh && hasSessionData(HOSTELS_KEY)) {
-      console.log('📦 Returning cached hostels from session');
-      return getSessionData(HOSTELS_KEY);
+    if (!forceRefresh) {
+      const cachedHostels = adminService.getValidCachedArray(HOSTELS_KEY);
+      if (cachedHostels) {
+        console.log('📦 Returning cached hostels from session');
+        return cachedHostels;
+      }
     }
     
     // Fetch from API
@@ -71,9 +80,10 @@ export const adminService = {
     const ROOMS_KEY = 'admin_rooms';
     
     // Check if data already exists in current session
-    if (hasSessionData(ROOMS_KEY)) {
+    const cachedRooms = adminService.getValidCachedArray(ROOMS_KEY);
+    if (cachedRooms) {
       console.log('📦 Returning cached rooms from session');
-      return getSessionData(ROOMS_KEY);
+      return cachedRooms;
     }
     
     // First time in this session - fetch from API
@@ -106,9 +116,10 @@ export const adminService = {
     const STUDENTS_KEY = 'admin_students';
     
     // Check if data already exists in current session
-    if (hasSessionData(STUDENTS_KEY)) {
+    const cachedStudents = adminService.getValidCachedArray(STUDENTS_KEY);
+    if (cachedStudents) {
       console.log('📦 Returning cached students from session');
-      return getSessionData(STUDENTS_KEY);
+      return cachedStudents;
     }
     
     // First time in this session - fetch from API
@@ -137,9 +148,12 @@ export const adminService = {
     }
     
     // Check if data already exists in current session
-    if (!forceRefresh && hasSessionData(REQUESTS_KEY)) {
-      console.log('📦 Returning cached room requests from session');
-      return getSessionData(REQUESTS_KEY);
+    if (!forceRefresh) {
+      const cachedRequests = adminService.getValidCachedArray(REQUESTS_KEY);
+      if (cachedRequests) {
+        console.log('📦 Returning cached room requests from session');
+        return cachedRequests;
+      }
     }
     
     // Fetch from API
@@ -348,6 +362,44 @@ export const adminService = {
       return res;
     } catch (err) {
       console.error('Error deleting caretaker:', err);
+      throw err;
+    }
+  },
+
+  // Warden management
+  getWardens: async () => {
+    try {
+      const res = await api.get('/admin/wardens');
+      return res || [];
+    } catch (err) {
+      console.error('Error fetching wardens:', err);
+      throw err;
+    }
+  },
+
+  createWarden: async (data) => {
+    try {
+      return await api.post('/admin/wardens', data);
+    } catch (err) {
+      console.error('Error creating warden:', err);
+      throw err;
+    }
+  },
+
+  updateWarden: async (id, data) => {
+    try {
+      return await api.put(`/admin/wardens/${id}`, data);
+    } catch (err) {
+      console.error('Error updating warden:', err);
+      throw err;
+    }
+  },
+
+  deleteWarden: async (id) => {
+    try {
+      return await api.delete(`/admin/wardens/${id}`);
+    } catch (err) {
+      console.error('Error deleting warden:', err);
       throw err;
     }
   },

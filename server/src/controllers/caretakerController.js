@@ -34,6 +34,9 @@ export async function caretakerLogin(req, res) {
     }
 
     const caretaker = caretakers[0];
+    if (!caretaker.hostel_id) {
+      return res.status(403).json({ error: 'Caretaker is not assigned to a hostel. Please contact admin.' });
+    }
     console.log('Caretaker found:', caretaker.name, '(ID:', caretaker.caretaker_id + ')');
     console.log('Comparing password...');
     const isValid = await bcrypt.compare(password, caretaker.password);
@@ -104,6 +107,9 @@ export async function getCaretakerDashboard(req, res) {
     }
 
     const hostelId = caretaker[0].hostel_id;
+    if (!hostelId) {
+      return res.status(403).json({ error: 'Caretaker is not assigned to a hostel. Please contact admin.' });
+    }
 
     // Get complaints for this hostel
     const [complaints] = await conn.query(
@@ -113,9 +119,9 @@ export async function getCaretakerDashboard(req, res) {
        JOIN student s ON c.student_id = s.student_id
        JOIN rooms r ON c.room_id = r.room_id
        JOIN hostels h ON r.hostel_id = h.hostel_id
-       WHERE ${hostelId ? 'h.hostel_id = ?' : '1=1'}
+       WHERE h.hostel_id = ?
        ORDER BY c.created_at DESC`,
-      hostelId ? [hostelId] : []
+      [hostelId]
     );
 
     // Get statistics
@@ -129,8 +135,8 @@ export async function getCaretakerDashboard(req, res) {
         SUM(CASE WHEN status = 'Reopened' THEN 1 ELSE 0 END) as reopened
        FROM complaints c
        JOIN rooms r ON c.room_id = r.room_id
-       ${hostelId ? 'WHERE r.hostel_id = ?' : ''}`,
-      hostelId ? [hostelId] : []
+         WHERE r.hostel_id = ?`,
+        [hostelId]
     );
 
     // Prevent caching to ensure fresh data
@@ -169,6 +175,9 @@ export async function getHostelComplaints(req, res) {
     }
 
     const hostelId = caretaker[0].hostel_id;
+    if (!hostelId) {
+      return res.status(403).json({ error: 'Caretaker is not assigned to a hostel. Please contact admin.' });
+    }
 
     // Get complaints
     const [complaints] = await conn.query(
@@ -178,9 +187,9 @@ export async function getHostelComplaints(req, res) {
        JOIN student s ON c.student_id = s.student_id
        JOIN rooms r ON c.room_id = r.room_id
        JOIN hostels h ON r.hostel_id = h.hostel_id
-       WHERE ${hostelId ? 'h.hostel_id = ?' : '1=1'}
+       WHERE h.hostel_id = ?
        ORDER BY c.created_at DESC`,
-      hostelId ? [hostelId] : []
+      [hostelId]
     );
 
     // Prevent caching to ensure fresh data
