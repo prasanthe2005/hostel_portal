@@ -22,10 +22,11 @@ export async function register(req,res){
   console.log('📧 Email:', email);
   console.log('👤 Name:', name);
   
-  const conn = await pool.getConnection();
-  console.log('🔌 Database connection established');
-  
+  let conn;
   try{
+    conn = await pool.getConnection();
+    console.log('🔌 Database connection established');
+
     console.log('🔍 Checking if email already exists...');
     // Check if email already exists
     const [existing] = await conn.query('SELECT student_id FROM student WHERE email=? LIMIT 1',[email]);
@@ -78,8 +79,10 @@ export async function register(req,res){
     console.log('=== ❌ REGISTRATION FAILED ===\n');
     res.status(500).json({error:err.message}); 
   }finally{ 
-    conn.release();
-    console.log('🔌 Database connection released');
+    if (conn) {
+      conn.release();
+      console.log('🔌 Database connection released');
+    }
   }
 }
 
@@ -96,10 +99,11 @@ export async function login(req,res){
   console.log('✅ Validation passed');
   console.log('📧 Email:', email);
   
-  const conn = await pool.getConnection();
-  console.log('🔌 Database connection established');
-  
+  let conn;
   try{
+    conn = await pool.getConnection();
+    console.log('🔌 Database connection established');
+
     console.log('🔍 Checking for admin account...');
     // try admin
     const [admins] = await conn.query('SELECT admin_id, name, email, password_hash FROM admins WHERE email=? LIMIT 1',[email]);
@@ -166,7 +170,9 @@ export async function login(req,res){
     console.log('=== ❌ LOGIN FAILED ===\n');
     res.status(500).json({error:err.message}); 
   }finally{ 
-    conn.release();
-    console.log('🔌 Database connection released');
+    if (conn) {
+      conn.release();
+      console.log('🔌 Database connection released');
+    }
   }
 }

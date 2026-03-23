@@ -8,6 +8,7 @@ const pool = mysql.createPool({
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
   database: process.env.DB_NAME || 'hostel_db',
+  connectTimeout: Number(process.env.DB_CONNECT_TIMEOUT_MS) || 10000,
   multipleStatements: true,
   waitForConnections: true,
   connectionLimit: 10,
