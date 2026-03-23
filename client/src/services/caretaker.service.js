@@ -1,5 +1,6 @@
 // Caretaker Management APIs
 import tabSession from '../utils/tabSession.js';
+import { API_BASE_URL } from '../config/apiConfig';
 import { 
   initializeSession, 
   clearSession 
@@ -12,9 +13,9 @@ export const caretakerService = {
       console.log('\n=== CARETAKER LOGIN (CLIENT) ===');
       console.log('Email:', email);
       console.log('Password length:', password?.length);
-      console.log('Sending POST to: http://localhost:5000/api/caretaker/login');
+      console.log(`Sending POST to: ${API_BASE_URL}/caretaker/login`);
       
-      const response = await fetch('http://localhost:5000/api/caretaker/login', {
+      const response = await fetch(`${API_BASE_URL}/caretaker/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -56,7 +57,7 @@ export const caretakerService = {
       const token = tabSession.getToken();
       console.log('🔄 Fetching caretaker dashboard from API');
       
-      const response = await fetch(`http://localhost:5000/api/caretaker/dashboard?t=${Date.now()}`, {
+      const response = await fetch(`${API_BASE_URL}/caretaker/dashboard?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -86,7 +87,7 @@ export const caretakerService = {
       const token = tabSession.getToken();
       console.log('🔄 Fetching complaints from API');
       
-      const response = await fetch(`http://localhost:5000/api/caretaker/complaints?t=${Date.now()}`, {
+      const response = await fetch(`${API_BASE_URL}/caretaker/complaints?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -110,7 +111,7 @@ export const caretakerService = {
   updateComplaintStatus: async (complaintId, status) => {
     try {
       const token = tabSession.getToken();
-      const response = await fetch(`http://localhost:5000/api/caretaker/complaints/${complaintId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/caretaker/complaints/${complaintId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

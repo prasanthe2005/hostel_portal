@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import adminService from '../services/admin.service';
 import studentService from '../services/student.service';
 import StudentLayout from '../components/StudentLayout';
+import { BACKEND_ORIGIN } from '../config/apiConfig';
 
 export default function RequestRoomChange() {
   const [rooms, setRooms] = useState([]);
@@ -133,7 +134,7 @@ export default function RequestRoomChange() {
                 <p className="text-sm mt-1">{message.text}</p>
                 {message.type === 'error' && message.text.includes('Failed to load data') && (
                   <p className="text-xs mt-2 opacity-80">
-                    Please make sure the backend server is running on http://localhost:5000
+                    Please make sure the backend server is running on {BACKEND_ORIGIN}
                   </p>
                 )}
               </div>

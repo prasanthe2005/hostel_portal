@@ -1,12 +1,13 @@
 // Complaint Management APIs
 import tabSession from '../utils/tabSession';
+import { API_BASE_URL } from '../config/apiConfig';
 
 export const complaintService = {
   // Submit a new complaint
   submitComplaint: async (complaintData) => {
     try {
       const token = tabSession.getToken();
-      const response = await fetch('http://localhost:5000/api/complaints/submit', {
+      const response = await fetch(`${API_BASE_URL}/complaints/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,7 +32,7 @@ export const complaintService = {
   getMyComplaints: async () => {
     try {
       const token = tabSession.getToken();
-      const response = await fetch(`http://localhost:5000/api/complaints/my-complaints?t=${Date.now()}`, {
+      const response = await fetch(`${API_BASE_URL}/complaints/my-complaints?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -54,7 +55,7 @@ export const complaintService = {
   getAllComplaints: async () => {
     try {
       const token = tabSession.getToken();
-      const response = await fetch(`http://localhost:5000/api/admin/complaints?t=${Date.now()}`, {
+      const response = await fetch(`${API_BASE_URL}/admin/complaints?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -77,7 +78,7 @@ export const complaintService = {
   updateComplaintStatus: async (complaintId, status) => {
     try {
       const token = tabSession.getToken();
-      const response = await fetch(`http://localhost:5000/api/admin/complaints/${complaintId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/admin/complaints/${complaintId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ export const complaintService = {
       console.log('Token exists:', !!token);
       console.log('Token preview:', token ? token.substring(0, 30) + '...' : 'null');
       
-      const url = `http://localhost:5000/api/complaints/${complaintId}/confirm`;
+      const url = `${API_BASE_URL}/complaints/${complaintId}/confirm`;
       console.log('Request URL:', url);
       console.log('Request Method: PUT');
       
@@ -144,7 +145,7 @@ export const complaintService = {
       console.log('Token exists:', !!token);
       console.log('Token preview:', token ? token.substring(0, 30) + '...' : 'null');
       
-      const url = `http://localhost:5000/api/complaints/${complaintId}/reject`;
+      const url = `${API_BASE_URL}/complaints/${complaintId}/reject`;
       console.log('Request URL:', url);
       console.log('Request Method: PUT');
       

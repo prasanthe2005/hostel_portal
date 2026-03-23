@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import studentService from '../services/student.service';
 import StudentLayout from '../components/StudentLayout';
 import useAutoRefresh from '../hooks/useAutoRefresh';
+import { BACKEND_ORIGIN } from '../config/apiConfig';
 
 export default function StudentDashboard() {
   const [profile, setProfile] = useState(null);
@@ -102,7 +103,7 @@ export default function StudentDashboard() {
                 </p>
                 {!error.includes('Unauthorized') && !error.includes('Invalid token') && (
                   <p className="text-xs text-red-600 dark:text-red-400 mt-2">
-                    Please make sure the backend server is running on http://localhost:5000
+                    Please make sure the backend server is running on {BACKEND_ORIGIN}
                   </p>
                 )}
               </div>

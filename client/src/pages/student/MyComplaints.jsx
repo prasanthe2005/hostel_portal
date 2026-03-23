@@ -4,6 +4,7 @@ import { complaintService } from '../../services/complaint.service';
 import StudentLayout from '../../components/StudentLayout';
 import useAutoRefresh from '../../hooks/useAutoRefresh';
 import tabSession from '../../utils/tabSession';
+import { BACKEND_ORIGIN } from '../../config/apiConfig';
 
 const STATUS_COLORS = {
   'Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
@@ -192,7 +193,7 @@ export default function MyComplaints() {
                 <p className="text-sm mt-1">{error}</p>
                 {!error.includes('Unauthorized') && !error.includes('Invalid token') && (
                   <p className="text-xs mt-2 opacity-80">
-                    Please make sure the backend server is running on http://localhost:5000
+                    Please make sure the backend server is running on {BACKEND_ORIGIN}
                   </p>
                 )}
               </div>
