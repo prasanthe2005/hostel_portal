@@ -23,6 +23,15 @@ app.use('/api/caretaker', caretakerRoutes);
 app.use('/api/warden', wardenRoutes);
 app.use('/api', publicRoutes);
 
+app.get('/', (req, res) => {
+  res.json({
+    ok: true,
+    message: 'Hostel backend is running',
+    health: '/health',
+    apiBase: '/api'
+  });
+});
+
 app.get('/health', (req,res)=>res.json({ok:true}));
 
 async function ensureWardenTable() {
