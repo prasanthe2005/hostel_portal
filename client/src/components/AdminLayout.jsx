@@ -1,4 +1,17 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { BuildingOffice2Icon } from '@heroicons/react/24/solid';
+import {
+  Squares2X2Icon,
+  BuildingOfficeIcon,
+  HomeModernIcon,
+  UserGroupIcon,
+  WrenchScrewdriverIcon,
+  ShieldCheckIcon,
+  ArrowsRightLeftIcon,
+  ChartBarSquareIcon,
+  Cog6ToothIcon,
+  UserPlusIcon,
+} from '@heroicons/react/24/outline';
 
 const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
   const navigate = useNavigate();
@@ -9,13 +22,13 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
   };
 
   const sidebarItems = [
-    { path: '/admin/dashboard', icon: 'dashboard', label: 'Dashboard' },
-    { path: '/admin/hostels', icon: 'corporate_fare', label: 'Hostels' },
-    { path: '/admin/rooms', icon: 'bed', label: 'Rooms' },
-    { path: '/admin/students', icon: 'group', label: 'Students' },
-    { path: '/admin/caretakers', icon: 'engineering', label: 'Caretakers' },
-    { path: '/admin/wardens', icon: 'shield_person', label: 'Warden' },
-    { path: '/admin/room-requests', icon: 'swap_horiz', label: 'Room Requests' },
+    { path: '/admin/dashboard', icon: Squares2X2Icon, label: 'Dashboard' },
+    { path: '/admin/hostels', icon: BuildingOfficeIcon, label: 'Hostels' },
+    { path: '/admin/rooms', icon: HomeModernIcon, label: 'Rooms' },
+    { path: '/admin/students', icon: UserGroupIcon, label: 'Students' },
+    { path: '/admin/caretakers', icon: WrenchScrewdriverIcon, label: 'Caretakers' },
+    { path: '/admin/wardens', icon: ShieldCheckIcon, label: 'Warden' },
+    { path: '/admin/room-requests', icon: ArrowsRightLeftIcon, label: 'Room Requests' },
   ];
 
   return (
@@ -24,8 +37,8 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
         {/* Persistent Sidebar Navigation */}
         <aside className="w-64 flex-shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
           <div className="p-6 flex items-center gap-3">
-            <div className="bg-primary rounded-lg p-1.5 text-white">
-              <span className="material-symbols-outlined text-2xl">apartment</span>
+            <div className="h-10 w-10 min-w-10 bg-blue-600 rounded-lg text-white flex items-center justify-center shadow-sm">
+              <BuildingOffice2Icon className="h-6 w-6" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-lg font-bold leading-none">Hostel Admin</h1>
@@ -43,7 +56,7 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
                     : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                 }`}
               >
-                <span className="material-symbols-outlined">{item.icon}</span>
+                <item.icon className="h-5 w-5" aria-hidden="true" />
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
             ))}
@@ -52,20 +65,20 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
               onClick={() => navigate('/admin/reports')}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
-              <span className="material-symbols-outlined">analytics</span>
+              <ChartBarSquareIcon className="h-5 w-5" aria-hidden="true" />
               <span className="text-sm font-medium">Reports</span>
             </button>
             <button 
               onClick={() => navigate('/admin/settings')}
               className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
             >
-              <span className="material-symbols-outlined">settings</span>
+              <Cog6ToothIcon className="h-5 w-5" aria-hidden="true" />
               <span className="text-sm font-medium">Settings</span>
             </button>
           </nav>
           <div className="p-4">
             <button className="w-full py-2.5 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg flex items-center justify-center gap-2 text-sm font-bold shadow-sm transition-all">
-              <span className="material-symbols-outlined text-lg">person_add</span>
+              <UserPlusIcon className="h-5 w-5" aria-hidden="true" />
               New Registration
             </button>
           </div>
@@ -97,7 +110,7 @@ const AdminLayout = ({ children, title = 'Admin Dashboard' }) => {
               <div className="h-8 w-[1px] bg-slate-200 dark:bg-slate-800 mx-2"></div>
               <div className="flex items-center gap-3 pl-2">
                 <div className="text-right">
-                  <p className="text-sm font-semibold leading-none">James Wilson</p>
+                  <p className="text-sm font-semibold leading-none">Hostel Admin</p>
                   <p className="text-[11px] text-slate-500 font-medium mt-1">Super Admin</p>
                 </div>
                 <div 
