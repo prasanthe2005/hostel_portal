@@ -99,10 +99,11 @@ const ManageRooms = () => {
     }
     
     const newType = currentType === 'AC' ? 'Non-AC' : 'AC';
+    const newCapacity = newType === 'AC' ? 2 : 4;
     if (!confirm(`Convert this room from ${currentType} to ${newType}?`)) return;
     
     try {
-      await adminService.updateRoom(roomId, { type: newType });
+      await adminService.updateRoom(roomId, { type: newType, capacity: newCapacity });
       await fetchRooms();
       alert(`Room converted to ${newType} successfully!`);
     } catch (error) {
@@ -117,6 +118,38 @@ const ManageRooms = () => {
         <h2 className="text-2xl font-bold dark:text-white">Manage Rooms</h2>
         <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">View and manage all hostel rooms</p>
       </div>
+
+      {/* Statistics */}
+      {!loading && safeRooms.length > 0 && (
+        <div className="mb-6 grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Total Rooms</p>
+            <p className="text-2xl font-bold dark:text-white">{safeRooms.length}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
+            <p className="text-2xl font-bold text-green-600">{safeRooms.filter(r => r.status === 'available').length}</p>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
+            <p className="text-sm text-gray-500 dark:text-gray-400">Occupied</p>
+            <p className="text-2xl font-bold text-red-600">{safeRooms.filter(r => r.status === 'occupied').length}</p>
+          </div>
+          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-600">ac_unit</span>
+              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">AC Rooms</p>
+            </div>
+            <p className="text-2xl font-bold text-blue-600">{safeRooms.filter(r => r.type === 'AC').length}</p>
+          </div>
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-green-600">air</span>
+              <p className="text-sm text-green-600 dark:text-green-400 font-medium">Non-AC Rooms</p>
+            </div>
+            <p className="text-2xl font-bold text-green-600">{safeRooms.filter(r => r.type === 'Non-AC').length}</p>
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
@@ -254,37 +287,6 @@ const ManageRooms = () => {
         </div>
       )}
 
-      {/* Statistics */}
-      {!loading && safeRooms.length > 0 && (
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-5 gap-4">
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Total Rooms</p>
-            <p className="text-2xl font-bold dark:text-white">{safeRooms.length}</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Available</p>
-            <p className="text-2xl font-bold text-green-600">{safeRooms.filter(r => r.status === 'available').length}</p>
-          </div>
-          <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-gray-800 rounded-lg p-4">
-            <p className="text-sm text-gray-500 dark:text-gray-400">Occupied</p>
-            <p className="text-2xl font-bold text-red-600">{safeRooms.filter(r => r.status === 'occupied').length}</p>
-          </div>
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-blue-600">ac_unit</span>
-              <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">AC Rooms</p>
-            </div>
-            <p className="text-2xl font-bold text-blue-600">{safeRooms.filter(r => r.type === 'AC').length}</p>
-          </div>
-          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-green-600">air</span>
-              <p className="text-sm text-green-600 dark:text-green-400 font-medium">Non-AC Rooms</p>
-            </div>
-            <p className="text-2xl font-bold text-green-600">{safeRooms.filter(r => r.type === 'Non-AC').length}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

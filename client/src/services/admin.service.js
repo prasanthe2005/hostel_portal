@@ -218,6 +218,8 @@ export const adminService = {
   createRoom: async (payload) => {
     try {
       const res = await api.post('/admin/rooms', payload);
+      storeSessionData('admin_rooms', null);
+      console.log('🗑️ Cleared rooms cache after room creation');
       return res;
     } catch (err) {
       console.error('Error creating room:', err);
@@ -228,6 +230,8 @@ export const adminService = {
   updateRoom: async (roomId, payload) => {
     try {
       const res = await api.put(`/admin/rooms/${roomId}`, payload);
+      storeSessionData('admin_rooms', null);
+      console.log('🗑️ Cleared rooms cache after room update');
       return res;
     } catch (err) {
       console.error('Error updating room:', err);
@@ -238,6 +242,8 @@ export const adminService = {
   deleteRoom: async (roomId) => {
     try {
       const res = await api.delete(`/admin/rooms/${roomId}`);
+      storeSessionData('admin_rooms', null);
+      console.log('🗑️ Cleared rooms cache after room deletion');
       return res;
     } catch (err) {
       console.error('Error deleting room:', err);

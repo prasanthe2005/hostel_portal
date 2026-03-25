@@ -229,7 +229,7 @@ export default function ManageStudents() {
                 <option value="">— Select a Room —</option>
                 {availableRooms.map(room => (
                   <option key={room.room_id} value={room.room_id}>
-                    Room {room.room_number} · {room.type} · Available: {room.capacity - (room.assigned || 0)}/{room.capacity}
+                    {room.hostel_name || 'Hostel'} · Room {room.room_number} · {room.type} · Available: {room.capacity - (room.assigned || 0)}/{room.capacity}
                   </option>
                 ))}
               </select>
