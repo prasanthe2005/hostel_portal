@@ -1,5 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import adminService from '../services/admin.service';
+
+const REFRESH_INTERVAL_MS = 15000;
+
+const toCount = (value) => {
+  const count = Number(value);
+  return Number.isFinite(count) ? count : 0;
+};
 
 export default function ManageCaretakers() {
   const [caretakers, setCaretakers] = useState([]);
@@ -18,9 +25,36 @@ export default function ManageCaretakers() {
   });
 
   useEffect(() => {
-    loadCaretakers();
     loadHostels();
+    loadCaretakers();
+
+    const intervalId = setInterval(() => {
+      loadCaretakers();
+    }, REFRESH_INTERVAL_MS);
+
+    const handleWindowFocus = () => {
+      loadCaretakers();
+    };
+
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      clearInterval(intervalId);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
   }, []);
+
+  const overviewStats = useMemo(() => {
+    return caretakers.reduce(
+      (stats, caretaker) => {
+        stats.pending += toCount(caretaker.pending_complaints);
+        stats.inProgress += toCount(caretaker.in_progress_complaints);
+        stats.completed += toCount(caretaker.completed_complaints);
+        return stats;
+      },
+      { pending: 0, inProgress: 0, completed: 0 }
+    );
+  }, [caretakers]);
 
   const loadCaretakers = async () => {
     try {
@@ -138,7 +172,7 @@ export default function ManageCaretakers() {
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400" style={{ fontSize: 16 }}>schedule</span>
                 <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">
-                  {caretakers.reduce((s, c) => s + (c.pending_complaints || 0), 0)}
+                  {overviewStats.pending}
                 </p>
               </div>
             </div>
@@ -147,7 +181,7 @@ export default function ManageCaretakers() {
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-blue-600 dark:text-blue-400" style={{ fontSize: 16 }}>construction</span>
                 <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                  {caretakers.reduce((s, c) => s + (c.in_progress_complaints || 0), 0)}
+                  {overviewStats.inProgress}
                 </p>
               </div>
             </div>
@@ -156,7 +190,7 @@ export default function ManageCaretakers() {
               <div className="flex items-center gap-1.5">
                 <span className="material-symbols-outlined text-green-600 dark:text-green-400" style={{ fontSize: 16 }}>verified</span>
                 <p className="text-2xl font-bold text-green-900 dark:text-green-100">
-                  {caretakers.reduce((s, c) => s + (c.completed_complaints || 0), 0)}
+                  {overviewStats.completed}
                 </p>
               </div>
             </div>
@@ -221,7 +255,7 @@ export default function ManageCaretakers() {
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                            {caretaker.total_complaints}
+                            {toCount(caretaker.total_complaints)}
                           </span>
                           <button
                             onClick={() => setExpandedCaretaker(expandedCaretaker === caretaker.caretaker_id ? null : caretaker.caretaker_id)}
@@ -262,35 +296,35 @@ export default function ManageCaretakers() {
                                 <p className="text-xs font-semibold text-yellow-500 dark:text-yellow-400 uppercase tracking-wide mb-1">Pending</p>
                                 <div className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400" style={{ fontSize: 14 }}>schedule</span>
-                                  <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">{caretaker.pending_complaints || 0}</p>
+                                  <p className="text-xl font-bold text-yellow-900 dark:text-yellow-100">{toCount(caretaker.pending_complaints)}</p>
                                 </div>
                               </div>
                               <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg px-3 py-2.5">
                                 <p className="text-xs font-semibold text-blue-500 dark:text-blue-400 uppercase tracking-wide mb-1">In Progress</p>
                                 <div className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-blue-600 dark:text-blue-400" style={{ fontSize: 14 }}>construction</span>
-                                  <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{caretaker.in_progress_complaints || 0}</p>
+                                  <p className="text-xl font-bold text-blue-900 dark:text-blue-100">{toCount(caretaker.in_progress_complaints)}</p>
                                 </div>
                               </div>
                               <div className="bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-lg px-3 py-2.5">
                                 <p className="text-xs font-semibold text-purple-500 dark:text-purple-400 uppercase tracking-wide mb-1">Resolved</p>
                                 <div className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-purple-600 dark:text-purple-400" style={{ fontSize: 14 }}>check_circle</span>
-                                  <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{caretaker.resolved_complaints || 0}</p>
+                                  <p className="text-xl font-bold text-purple-900 dark:text-purple-100">{toCount(caretaker.resolved_complaints)}</p>
                                 </div>
                               </div>
                               <div className="bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 rounded-lg px-3 py-2.5">
                                 <p className="text-xs font-semibold text-green-500 dark:text-green-400 uppercase tracking-wide mb-1">Completed</p>
                                 <div className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-green-600 dark:text-green-400" style={{ fontSize: 14 }}>verified</span>
-                                  <p className="text-xl font-bold text-green-900 dark:text-green-100">{caretaker.completed_complaints || 0}</p>
+                                  <p className="text-xl font-bold text-green-900 dark:text-green-100">{toCount(caretaker.completed_complaints)}</p>
                                 </div>
                               </div>
                               <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800 rounded-lg px-3 py-2.5">
                                 <p className="text-xs font-semibold text-orange-500 dark:text-orange-400 uppercase tracking-wide mb-1">Reopened</p>
                                 <div className="flex items-center gap-1">
                                   <span className="material-symbols-outlined text-orange-600 dark:text-orange-400" style={{ fontSize: 14 }}>replay</span>
-                                  <p className="text-xl font-bold text-orange-900 dark:text-orange-100">{caretaker.reopened_complaints || 0}</p>
+                                  <p className="text-xl font-bold text-orange-900 dark:text-orange-100">{toCount(caretaker.reopened_complaints)}</p>
                                 </div>
                               </div>
                             </div>
@@ -301,8 +335,8 @@ export default function ManageCaretakers() {
                                 <span className="material-symbols-outlined text-green-500" style={{ fontSize: 14 }}>trending_up</span>
                                 <span className="text-gray-500 dark:text-gray-400 text-xs">Success Rate:</span>
                                 <span className="font-semibold text-green-600 dark:text-green-400 text-xs">
-                                  {caretaker.total_complaints > 0
-                                    ? ((caretaker.completed_complaints || 0) / caretaker.total_complaints * 100).toFixed(1)
+                                  {toCount(caretaker.total_complaints) > 0
+                                    ? ((toCount(caretaker.completed_complaints) / toCount(caretaker.total_complaints)) * 100).toFixed(1)
                                     : 0}%
                                 </span>
                               </div>
@@ -310,14 +344,14 @@ export default function ManageCaretakers() {
                                 <span className="material-symbols-outlined text-blue-500" style={{ fontSize: 14 }}>pending_actions</span>
                                 <span className="text-gray-500 dark:text-gray-400 text-xs">Active:</span>
                                 <span className="font-semibold text-blue-600 dark:text-blue-400 text-xs">
-                                  {(caretaker.pending_complaints || 0) + (caretaker.in_progress_complaints || 0)}
+                                  {toCount(caretaker.pending_complaints) + toCount(caretaker.in_progress_complaints)}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1.5">
                                 <span className="material-symbols-outlined text-orange-500" style={{ fontSize: 14 }}>priority_high</span>
                                 <span className="text-gray-500 dark:text-gray-400 text-xs">Needs Attention:</span>
                                 <span className="font-semibold text-orange-600 dark:text-orange-400 text-xs">
-                                  {caretaker.reopened_complaints || 0}
+                                  {toCount(caretaker.reopened_complaints)}
                                 </span>
                               </div>
                             </div>

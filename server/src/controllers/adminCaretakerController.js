@@ -86,12 +86,21 @@ export async function listCaretakers(req, res) {
        ORDER BY c.created_at DESC`
     );
 
+    const normalizedCaretakers = caretakers.map((caretaker) => ({
+      ...caretaker,
+      total_complaints: Number(caretaker.total_complaints) || 0,
+      pending_complaints: Number(caretaker.pending_complaints) || 0,
+      in_progress_complaints: Number(caretaker.in_progress_complaints) || 0,
+      resolved_complaints: Number(caretaker.resolved_complaints) || 0,
+      completed_complaints: Number(caretaker.completed_complaints) || 0,
+      reopened_complaints: Number(caretaker.reopened_complaints) || 0
+    }));
     // Set cache control headers to prevent caching
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
     res.set('Pragma', 'no-cache');
     res.set('Expires', '0');
 
-    res.json(caretakers);
+    res.json(normalizedCaretakers);
   } catch (err) {
     console.error('Error fetching caretakers:', err);
     res.status(500).json({ error: err.message });
@@ -199,7 +208,14 @@ export async function getComplaintsStats(req, res) {
        FROM complaints`
     );
 
-    res.json(stats[0]);
+    const normalizedStats = {
+      total: Number(stats[0]?.total) || 0,
+      pending: Number(stats[0]?.pending) || 0,
+      in_progress: Number(stats[0]?.in_progress) || 0,
+      resolved: Number(stats[0]?.resolved) || 0
+    };
+
+    res.json(normalizedStats);
   } catch (err) {
     console.error('Error fetching complaints stats:', err);
     res.status(500).json({ error: err.message });
